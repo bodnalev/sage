@@ -1453,7 +1453,7 @@ cdef class HypergraphFlag (Flag):
 		cdef int f1index, f2index, *grb, equal_flags_mode, nzcount, row
 		cdef HypergraphFlag g, t, f1, f2
 		
-		rarray = numpy.zeros([0, 5], dtype=numpy.intc)
+		rarray = numpy.zeros([0, 5], dtype=numpy.int32)
 		row = 0
 		
 		#sig_on()

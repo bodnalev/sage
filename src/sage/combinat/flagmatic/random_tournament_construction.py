@@ -26,7 +26,6 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-
 from sage.functions.other import binomial
 from sage.combinat.all import Tuples, Combinations
 from sage.rings.all import Integer, RationalField

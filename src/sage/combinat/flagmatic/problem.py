@@ -793,10 +793,10 @@ class Problem(SageObject):
             self._construction = None
             self._field = field
             sys.stdout.write("Field is \"%s\" with embedding x=%s.\n" %
-                (str(self._field), self._field.gen_embedding().n(digits=10)))
+                (str(self._field), stformat(self._field.gen_embedding())))
             self._target_bound = target_bound
             sys.stdout.write("Set target bound to be %s (%s).\n" %
-                (self._target_bound, self._target_bound.n(digits=10)))
+                (self._target_bound, stformat(self._target_bound)))
 
             self._zero_eigenvectors = []
             for ti in range(num_types):
@@ -1307,7 +1307,7 @@ class Problem(SageObject):
                     if d != 0:
                         if self._minimize:
                             d *= -1
-                        f.write("%d %d %d %d %.64f\n" % (i + 1, total_num_blocks + 3, j + 1, j + 1, d))
+                        f.write("%d %d %d %d %s\n" % (i + 1, total_num_blocks + 3, j + 1, j + 1, stformat(d, 64)))
 
             for i in range(num_density_coeff_blocks):
                 for di in self._density_coeff_blocks[i]:
@@ -1330,8 +1330,8 @@ class Problem(SageObject):
                         j -= block_offsets[bi]
                         k -= block_offsets[bi]
                     value = Integer(row[3]) / Integer(row[4])
-                    f.write("%d %d %d %d %.64f\n" %
-                            (gi + 1, block_indices[bi] + 2, j + 1, k + 1, value))
+                    f.write("%d %d %d %d %s\n" %
+                            (gi + 1, block_indices[bi] + 2, j + 1, k + 1, stformat(value, 64)))
 
             # TODO: get working with blocks, inactive types
             if force_zero_eigenvectors:
@@ -1343,8 +1343,8 @@ class Problem(SageObject):
                             for k in range(j, nf):
                                 value = self._zero_eigenvectors[ti][zi, j] * self._zero_eigenvectors[ti][zi, k]
                                 if value != 0:
-                                    f.write("%d %d %d %d %.64f\n" %
-                                            (num_graphs + num_density_coeff_blocks + mi + 1, ti + 2, j + 1, k + 1, value))
+                                    f.write("%d %d %d %d %s\n" %
+                                            (num_graphs + num_density_coeff_blocks + mi + 1, ti + 2, j + 1, k + 1, stformat(value, 64)))
                         f.write("%d %d %d %d -1.0\n" % (num_graphs + num_density_coeff_blocks + mi + 1, total_num_blocks + 4, mi + 1, mi + 1))
                         mi += 1
 
@@ -1386,16 +1386,16 @@ class Problem(SageObject):
                 for gi in range(num_graphs):
                     if gi in self._sharp_graphs:
                         si = self._sharp_graphs.index(gi)
-                        f.write("%.64f " % self._sharp_graph_densities[si])
+                        f.write("%s " % stformat(self._sharp_graph_densities[si], 64))
                     else:
                         f.write("0.0 ")
 
                 if not self._minimize:
-                    f.write("%.64f\n" % (-self._target_bound))
+                    f.write("%s\n" % stformat(-self._target_bound, 64))
                 else:
-                    f.write("%s\n" % self._target_bound.n(digits=64))
+                    f.write("%s\n" % stformat(self._target_bound, 64))
 
-                f.write("1 1 1 1 %s\n" % small_change.n(digits=64))
+                f.write("1 1 1 1 %s\n" % stformat(small_change, 64))
 
                 for ti in range(num_types):
 
@@ -1422,7 +1422,7 @@ class Problem(SageObject):
                             for k in range(j, block_sizes[bi]):
                                 value = z_matrix[block_offsets[bi] + j, block_offsets[bi] + k]
                                 if value != 0:
-                                    f.write("1 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, k + 1, value.n(digits=64)))
+                                    f.write("1 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, k + 1, stformat(value, 64)))
 
                 for gi in range(num_graphs):
                     if gi in self._sharp_graphs:
@@ -1432,31 +1432,31 @@ class Problem(SageObject):
                         value = 0
                     if value <= 0:
                         value = small_change
-                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, value.n(digits=64)))
+                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, stformat(value, 64)))
 
                 for j in range(num_active_densities):
-                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, small_change.n(digits=64)))
+                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, stformat(small_change, 64)))
 
             else:
 
                 for gi in range(num_graphs + 1):
                     f.write("0.0 ")
                 f.write("\n")
-                f.write("1 1 1 1 %s\n" % small_change.n(digits=64))
+                f.write("1 1 1 1 %s\n" % stformat(small_change, 64))
                 for ti in range(num_types):
                     num_blocks, block_sizes, block_offsets, block_indices = self._get_block_matrix_structure(ti)
                     for bi in range(num_blocks):
                         for j in range(block_sizes[bi]):
-                            f.write("1 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, j + 1, small_change.n(digits=64)))
+                            f.write("1 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, j + 1, stformat(small_change, 64)))
                 for gi in range(num_graphs):
-                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, small_change.n(digits=64)))
+                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, stformat(small_change, 64)))
                 for j in range(num_active_densities):
-                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, small_change.n(digits=64)))
+                    f.write("1 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, stformat(small_change, 64)))
 
             # TODO: make this an exact Q check.
             if self.state("check_exact") == "yes":
 
-                f.write("2 1 1 1 %s\n" % self._bound.n(digits=64))
+                f.write("2 1 1 1 %s\n" % stformat(self._bound, 64))
 
                 for ti in range(num_types):
 
@@ -1469,19 +1469,19 @@ class Problem(SageObject):
                                 if j == k:
                                     value += small_change
                                 if value != 0:
-                                    f.write("2 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, k + 1, value.n(digits=64)))
+                                    f.write("2 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, k + 1, stformat(value, 64)))
 
                 for gi in range(num_graphs):
                     value = self._bound - self._bounds[gi]
                     if value <= 0:
                         value = small_change
-                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, value.n(digits=64)))
+                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, stformat(value, 64)))
 
                 for j in range(num_active_densities):
                     value = self._exact_density_coeffs[self._active_densities[j]]
                     if value <= 0:
                         value = small_change
-                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, value.n(digits=64)))
+                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, stformat(value, 64)))
 
             else:
 
@@ -1493,7 +1493,7 @@ class Problem(SageObject):
                 value = bound
                 if value <= 0:
                     value = small_change
-                f.write("2 1 1 1 %s\n" % value.n(digits=64))
+                f.write("2 1 1 1 %s\n" % stformat(value, 64))
 
                 num_blocks, block_sizes, block_offsets, block_indices = self._get_block_matrix_structure(ti)
 
@@ -1503,17 +1503,17 @@ class Problem(SageObject):
 
                     for bi in range(num_blocks):
                         for j in range(block_sizes[bi]):
-                            f.write("2 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, j + 1, small_change.n(digits=64)))
+                            f.write("2 %d %d %d %s\n" % (block_indices[bi] + 2, j + 1, j + 1, stformat(small_change, 64)))
 
                 for gi in range(num_graphs):
                     value = (bound - densities[gi]) * (-1 if self._minimize else 1)
                     if value <= 0:
                         value = small_change
-                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, value.n(digits=64)))
+                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 2, gi + 1, gi + 1, stformat(value, 64)))
 
                 value = Integer(1) / num_active_densities
                 for j in range(num_active_densities):
-                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, value.n(digits=64)))
+                    f.write("2 %d %d %d %s\n" % (total_num_blocks + 3, j + 1, j + 1, stformat(value, 64)))
 
     # TODO: report error if problem infeasible
 
@@ -1870,7 +1870,7 @@ class Problem(SageObject):
             try:
                 f = gzip.open(directory + "/" + flags.out_filename + ".gz", "rb")
             except IOError:
-                print(("Could not open %s or %s.gz" % (flags.out_filename, flags.out_filename)))
+                print("Could not open %s or %s.gz" % (flags.out_filename, flags.out_filename))
                 return
 
         for line in f:
@@ -2087,10 +2087,7 @@ class Problem(SageObject):
             EDR = DR.T
 
             sys.stdout.write("Constructing DR matrix")
-            
-            
-            ####this is not used when a solution is set
-            
+
             # Only if there is more than one density
             if num_densities > 1 and use_densities:
 
@@ -2117,7 +2114,7 @@ class Problem(SageObject):
 
                 sys.stdout.write("\n")
                 sys.stdout.write("DR matrix (density part) has rank %d.\n" % DR.ncols())
-            
+
             col_norms = {}
             for i in range(num_triples):
                 n = sum(x**2 for x in R.column(i))
@@ -2156,9 +2153,7 @@ class Problem(SageObject):
 
             sys.stdout.write("\n")
             sys.stdout.write("DR matrix has rank %d.\n" % DR.ncols())
-            
-            print("\n\nthe later DR matrix is \n{}\n\nEDR is \n{}\n\n".format(DR, EDR))
-            
+
             T = matrix(self._field, num_sharps, 1)
 
             for si in range(num_sharps):
@@ -2176,13 +2171,6 @@ class Problem(SageObject):
                         T[si, 0] -= self._exact_Qdash_matrices[ti][j, k] * R[si, i]
 
             FDR = matrix(self._field, DR)
-            
-            print("\n\nthe unsolvable problem has parameters:\nFDR is \n{}\n\nand T is \n{}\n\n".format(FDR, T))
-            
-            print("\n\nother random data\nnum_densities:{}\nnum_triples:{}\n".format(num_densities, num_triples))
-            print("density_cols_to_use:\n{}\ncols_to_use:\n{}\n".format(density_cols_to_use, cols_to_use))
-            print("densities:\n{}\nexact_density_coeffs:\n{}\n".format(self._densities, self._exact_density_coeffs))
-            
             try:
                 X = FDR.solve_right(T)
             except ValueError:
@@ -2191,26 +2179,26 @@ class Problem(SageObject):
                 else:
                     raise ValueError("could not meet bound (try increasing the value of ``rank``).")
 
-            #RX = matrix(self._approximate_field, X.nrows(), 1)
+            RX = matrix(self._approximate_field, X.nrows(), 1)
 
             for i in range(len(density_cols_to_use)):
                 di = density_cols_to_use[i]
-            #    RX[i, 0] = self._exact_density_coeffs[di]
+                RX[i, 0] = self._exact_density_coeffs[di]
                 self._exact_density_coeffs[di] = X[i, 0]
 
             for i in range(len(density_cols_to_use), X.nrows()):
                 ti, j, k = triples[cols_to_use[i - len(density_cols_to_use)]]
-            #    RX[i, 0] = self._sdp_Qdash_matrices[ti][j, k]
+                RX[i, 0] = self._sdp_Qdash_matrices[ti][j, k]
                 self._exact_Qdash_matrices[ti][j, k] = X[i, 0]
                 self._exact_Qdash_matrices[ti][k, j] = X[i, 0]
 
-            #if show_changes:
-            #    for i in range(X.nrows()):
-            #        sys.stdout.write("%.11s -> %.11s " % (RX[i,0], RDF(X[i,0])))
-            #        if i < len(density_cols_to_use):
-            #            sys.stdout.write("(density %d)\n" % density_cols_to_use[i])
-            #        else:
-            #            sys.stdout.write("(matrix %d, entry [%d, %d])\n" % triples[cols_to_use[i - len(density_cols_to_use)]])
+            if show_changes:
+                for i in range(X.nrows()):
+                    sys.stdout.write("%.11s -> %.11s " % (RX[i,0], RDF(X[i,0])))
+                    if i < len(density_cols_to_use):
+                        sys.stdout.write("(density %d)\n" % density_cols_to_use[i])
+                    else:
+                        sys.stdout.write("(matrix %d, entry [%d, %d])\n" % triples[cols_to_use[i - len(density_cols_to_use)]])
 
         for ti in range(num_types):
             self._exact_Qdash_matrices[ti].set_immutable()
@@ -2303,7 +2291,7 @@ class Problem(SageObject):
         self._bound = bound
 
         if self.state("meet_target_bound") != "yes":
-            sys.stdout.write("Bound is %s (%s).\n" % (bound, bound.n(digits=10)))
+            sys.stdout.write("Bound is %s (%s).\n" % (bound, stformat(bound)))
             return
 
         if self._field == QQ:
@@ -2469,6 +2457,12 @@ class Problem(SageObject):
         except IOError:
             sys.stdout.write("Cannot open file for writing.\n")
 
+def stformat(x, ds=10):
+    if isinstance(x, float) or isinstance(x, int):
+        return "{1:.{0}f}".format(ds, x)
+    else:
+        return x.n(digits=ds)
+        
 
 def ThreeGraphProblem(order=None, **kwargs):
     r"""
