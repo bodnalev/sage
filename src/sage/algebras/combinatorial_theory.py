@@ -371,16 +371,22 @@ def _round_adaptive(ls, onevec, denom=1024):
         best_vec = rvec/(rvec*onevec)
     return best_vec, ((best_vec-orig)/(len(orig)**0.5)).norm()
 
-def _remove_kernel(mat, factor=1024, threshold=1e-4):
+def _remove_kernel(mat, factor=1024, threshold=1e-4, cthreshold=1e-4, printlevel=0):
+    if printlevel>1:
+        print("Kernel removal received matrix\n", mat.str())
     d = mat.nrows()
     M_scaled = matrix(ZZ, [[round(xx*factor) for xx in vv] for vv in mat])
     M_augmented = matrix.identity(ZZ, d).augment(M_scaled)
     LLL_reduced = M_augmented.LLL()
     LLL_coeffs = LLL_reduced[:, :d]
     norm_test = LLL_coeffs * mat
-    #print("norms are: ", " ".join([str(int(log(rr.norm(1)/d, 10))) for rr in norm_test]))
-    kernel_base = [LLL_coeffs[ii] for ii,rr in enumerate(norm_test) if rr.norm(1)/d < threshold]
-    #print("resulting kernel base is:\n", kernel_base)
+    if printlevel>0:
+        print("norms are: ", " ".join([str(int(log(rr.norm(1)/d, 10))) for rr in norm_test]))
+        print("coeff norms are: ", " ".join([str(int(log(rr.norm(1)/d, 10))) for rr in LLL_coeffs/factor]))
+    kernel_base = [LLL_coeffs[ii] for ii,rr in enumerate(norm_test) 
+                   if rr.norm(1)/d < threshold and (LLL_coeffs[ii]).norm(1)/(factor*d) < cthreshold]
+    if printlevel>1:
+        print("resulting kernel base is:\n", kernel_base)
     if len(kernel_base)==0:
         return mat, matrix.identity(d, sparse=True)
     K = matrix(ZZ, kernel_base).stack(matrix.identity(d))
@@ -420,6 +426,11 @@ def _min_symm_eig(M):
     import numpy as np
     Mnp = M.n().numpy()
     return min(np.linalg.eigh((Mnp.transpose() + Mnp)/2).eigenvalues)
+
+def _min_symm_eigvec(M):
+    import numpy as np
+    Mnp = M.n().numpy()
+    return vector(np.linalg.eigh((Mnp.transpose() + Mnp)/2).eigenvectors[0])
 
 class _CombinatorialTheory(Parent, UniqueRepresentation):
     def __init__(self, name):
@@ -856,6 +867,9 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
                         ind, 
                         _min_symm_eig(M)
                         ))
+                if self._printlevel>1:
+                    minvec = _min_symm_eigvec(M)
+                    print(minvec)
                 return False
         except:
             if not _custom_psd_test(M):
@@ -864,6 +878,9 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
                         ind, 
                         _min_symm_eig(M)
                         ))
+                if self._printlevel>1:
+                    minvec = _min_symm_eigvec(M)
+                    print(minvec)
                 return False
         return True
 
@@ -1377,7 +1394,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             for plus_index, base in enumerate(table_constructor[params]):
                 
                 X_approx = matrix(sdp_result['X'][block_index + plus_index])
-                X_kernel_removed, recover_base = _remove_kernel(X_approx, kernel_denom, kernel_threshold)
+                X_kernel_removed, recover_base = _remove_kernel(X_approx, kernel_denom, kernel_threshold, 1e-4, self._printlevel)
                 X_recover_bases.append(recover_base)
                 X_sizes_corrected.append(X_kernel_removed.nrows())
                 X_rounded_flattened = _round_list(
@@ -1535,6 +1552,8 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
 
         # dim: |F_n|, c vector, primal slack for flags
         c_vector_approx = vector(sdp_result['X'][-2]) 
+        if self._printlevel>1:
+            print("c vector is", "\n".join(map(str, c_vector_approx)))
 
         c_zero_inds = [
             FF for FF, xx in enumerate(c_vector_approx) if 
@@ -1614,7 +1633,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             for plus_index, base in enumerate(table_constructor[params]):
                 
                 X_approx = matrix(sdp_result['X'][block_index + plus_index])
-                X_kernel_removed, recover_base = _remove_kernel(X_approx, kernel_denom, kernel_threshold)
+                X_kernel_removed, recover_base = _remove_kernel(X_approx, kernel_denom, kernel_threshold, 1e-4, self._printlevel)
                 X_recover_bases.append(recover_base)
                 X_sizes_corrected.append(X_kernel_removed.nrows())
                 X_rounded_flattened = _round_list(
