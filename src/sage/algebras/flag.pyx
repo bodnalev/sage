@@ -1,5 +1,95 @@
 r"""
-Implementation of Flag, elements of :class:`CombinatorialTheory`
+Flags and patterns
+==================
+
+This module provides the concrete combinatorial objects used by flag algebras:
+
+- :class:`Flag` – an induced, canonical representative of a finite structure
+- :class:`Pattern` – a partial specification (some relations may
+  be unspecified), used for compatibility checks and exclusions
+
+Creating flags
+--------------
+
+Flags are constructed by calling a theory object. For graphs:
+
+::
+
+    sage: G = GraphTheory
+    sage: triangle = G(3, edges=[[0,1],[0,2],[1,2]])
+    sage: cherry = G(3, edges=[[0,1],[0,2]])
+    sage: other = G(3, edges=[[0,1],[1,2]])
+    sage: cherry == other
+    True
+
+If a relation is omitted, it is assumed empty:
+
+::
+
+    sage: G(3) == G(3, edges=[])
+    True
+
+Types (marked vertices)
+-----------------------
+
+Pass ``ftype=[...]`` to mark vertices (in the given order) as the type.
+
+::
+
+    sage: G = GraphTheory
+    sage: pointed_edge = G(2, edges=[[0,1]], ftype=[0])
+    sage: pointed_cherry = G(3, edges=[[0,1],[1,2]], ftype=[1])
+    sage: pointed_edge + pointed_cherry   # doctest: +ELLIPSIS
+    ...
+
+Patterns (non-induced constraints)
+----------------------------------
+
+A pattern is like a flag, but unspecified relations are “free”.
+Create via :meth:`CombinatorialTheory.pattern` or the short form :meth:`p`.
+
+::
+
+    sage: G = GraphTheory
+    sage: pat = G.pattern(3, edges=[[0,1]])
+    sage: compat = pat.compatible_flags()
+    sage: len(compat) >= 1
+    True
+
+You can also require *missing* relations by using the ``_missing`` or ``_m``
+suffix:
+
+::
+
+    sage: mpat = G.p(3, edges=[[0,1]], edges_m=[[1,2]])
+    sage: len(mpat.compatible_flags()) >= 1
+    True
+
+Arithmetic and projections
+--------------------------
+
+Flags coerce into their flag algebra; addition/multiplication produce
+flag-algebra elements. The operator ``<<`` applies the “chain rule” expansion
+(increase size by adding unlabelled vertices).
+
+::
+
+    sage: G = GraphTheory
+    sage: k2 = G(2, edges=[[0,1]])
+    sage: k2 << 1
+    ...
+
+The averaging operator is :meth:`project`. Multiplication and projection
+is a common operation, it has a combined faster function :meth:`mul_project`
+
+::
+
+    sage: G = GraphTheory
+    sage: f = G(2, ftype=[0])
+    sage: f.project() # not tested
+    sage: f.mul_project(f) == (f*f).project()
+    True
+
 
 AUTHORS:
 
@@ -553,6 +643,12 @@ cdef class _Flag(Element):
             return self._blocks
         else:
             return self._blocks[key]
+    
+    def __getattr__(self, name):
+        try:
+            return self._blocks[name]
+        except KeyError:
+            raise AttributeError(f"{name!r} is not in the signature!")
     
     cpdef tuple ftype_points(self):
         r"""

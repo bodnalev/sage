@@ -1,132 +1,144 @@
 r"""
-Implementation of flag algebras, with a class for combinatorial theories
+Combinatorial theories for flag algebras
+=======================================
 
+This module implements **combinatorial theories** (a.k.a. *hereditary classes*)
+and the main flag-algebraic workflows on them: generating flags, excluding
+forbidden induced subflags, building optimization problems, and exporting /
+verifying certificates, rounding and extracting exact proofs from them.
 
-A combinatorial theory is any theory with universal axioms only, 
-(therefore the elements satisfy a heredetary property). This 
-implementation allows the construction of any such theory, and 
-can perform flag algebraic computations on them. The theory of
-flag algebras is from [Raz2007]_
+A *combinatorial theory* is specified by one (or more) finitary relations
+(e.g. edges of a graph, hyperedges of a 3-graph, colors as unary relations),
+together with the convention that all flags are **induced**: any relation not
+listed in the input is treated as *absent*. This makes exclusion hereditary:
+if a structure is excluded, every larger flag containing it as an induced
+subflag is excluded as well.
 
-To find out more about flags, how to create and manipulate them,
-see :mod:`sage.algebras.flag`. This docstring is for combinatorial
-theories and combinatorial optimization problems using flag algebras.
+Quick start (Mantel)
+--------------------
 
-The rest of this docstring will use `GraphTheory` since the number 
-of structures is realtively small there. `Flag` docstring shows
-ways to create and calculate with flags. To create a flag we need to
-provide the vertex size and a list of elements for each signature. 
-To create an edge flag for graphs, use ::
+The following is the typical workflow: build a theory, create flags, exclude
+forbidden configurations, and optimize a density.
 
-    sage: e = GraphTheory(2, edges=[[0, 1]])
+::
 
-To create a triangle `K_3` we can write ::
-    
-    sage: k3 = GraphTheory(3, edges=[[0, 1], [0, 2], [1, 2]])
+    sage: G = GraphTheory
+    sage: triangle = G(3, edges=[[0,1],[0,2],[1,2]])
+    sage: edge = G(2, edges=[[0,1]])
+    sage: G.exclude(triangle)
+    sage: G.optimize(edge, 3, exact=True)     # not tested
 
-If we have a theory, say GraphTheory, we can simply exclude structures
-with :func:`exclude`. This takes a list of flags or a single flag :: 
+Creating theories
+-----------------
 
-    sage: GraphTheory.exclude(k3)
+Use :func:`Theory` to create a new combinatorial theory. The arguments describe
+the relation:
 
-Excluding structures overwrites the theory, and in the future will only
-consider members without the excluded structures. So with the above, 
-excluding a triangle will make GraphTheory not generate `k3`, or any larger
-flag with induced `k3` in it. We can check this by generating flags of size
-`4` ::
+- ``relation_name``: keyword used when constructing flags (default: ``"edges"``)
+- ``arity``: size of tuples in the relation (default: 2)
+- ``is_ordered``: whether tuples are ordered (directed) (default: ``False``)
 
-    sage: GraphTheory.generate(4)
-    (Flag on 4 points, ftype from () with edges=(),
-     Flag on 4 points, ftype from () with edges=(01),
-     Flag on 4 points, ftype from () with edges=(01 03),
-     Flag on 4 points, ftype from () with edges=(02 13),
-     Flag on 4 points, ftype from () with edges=(01 02 03),
-     Flag on 4 points, ftype from () with edges=(01 02 13),
-     Flag on 4 points, ftype from () with edges=(02 03 12 13))
+::
 
-Calling :func:`exclude` adds new structures to the list of flags we don't want
-to generate, and we don't want to appear in larger strctures as an induced
-subflag. To reset the theory and don't exclude anything, call :func:`reset`.
+    sage: G = Theory("Graph")                       # undirected graphs
+    sage: H = Theory("ThreeGraph", arity=3)          # 3-uniform hypergraphs
+    sage: D = Theory("DiGraph", arity=2, is_ordered=True, relation_name="arc")
 
-To optimize the density of a flag (or linear combination of flags) in a theory,
-we can call :func:`optimize`. To try to find the maximum number of 
-edges `e` in `k3` free graphs we can write ::
-    
-    sage: x = GraphTheory.optimize(e, 3)
-    ...
-    Success: SDP solved
-    ...
-    sage: abs(x-0.5)<1e-6
-    True
-    
-The second parameter, `optimize_problem(e, 3)` indicates the maximum size the
-program expands the flags. We can reset the excluded graphs, and try to minimize 
-the density of triangles and empty triples ::
-    
-    sage: GraphTheory.reset()
-    sage: e3 = GraphTheory(3)
-    sage: x = GraphTheory.optimize(e3+k3, 3, maximize=False)
-    ...
-    sage: abs(x-0.25)<1e-6
+Several commonly used theories are also provided as globals, e.g.
+``GraphTheory``, ``ThreeGraphTheory``, ``DiGraphTheory``, etc.
+
+Excluding and generating
+------------------------
+
+Exclusion is incremental and in-place on the theory object.
+
+::
+
+    sage: G = GraphTheory
+    sage: G.reset()
+    sage: G.exclude(G(3))        # exclude the empty triple
+    sage: flags = G.generate(4)
+    sage: len(flags) > 0
     True
 
-The :func:`optimize` function requires csdpy, an sdp solver. But it is possible
-to get these relations directly, by expressing the inequalities 
-as a sum of squares ::
+Generating with a fixed type is also supported:
 
-    sage: GraphTheory.reset()
-    sage: GraphTheory.exclude(k3)
-    sage: pe = GraphTheory(2, ftype=[0]) - 1/2
-    sage: 1/2 >= pe.mul_project(pe) * 2 + e
+::
+
+    sage: G.reset()
+    sage: edgetype = G(2, edges=[[0,1]], ftype=[0,1])
+    sage: typed_flags = G.generate(4, edgetype)
+    sage: all(f.ftype() == edgetype for f in typed_flags)
     True
 
-:func:`mul_project` is short for multiplication and projection, the 
-non-negativity of self multiplication is preserved after projection so
-`pe.mul_project(pe)` is non-negative on all large enough structures 
-giving that `1/2` is larger than `e` in all large enough structures.
+Combining theories
+------------------
 
-The following longer example shows that the density of K^3_4 is always
-less than 3/8 in K^3_5-free hypergraphs. It uses the ThreeGraphTheory
-object to deal with 3-uniform hypergraphs and hand-picked squares.
-These values come from [Bod2023]_::
-    
-    sage: em5 = ThreeGraphTheory(5, edges=[])
-    sage: ThreeGraphTheory.exclude(em5)
-    
-    sage: em4 = ThreeGraphTheory(4, edges=[])
-    
-    sage: em3p1 = ThreeGraphTheory(3, ftype_points=[0], edges=[])
-    sage: sq1 = (em3p1 - 3/4).mul_project(em3p1 - 3/4) # todo: not implemented
-    
-    sage: la4p2 = ThreeGraphTheory(4, ftype_points=[0, 1], edges=[[0, 2, 3]])
-    sage: lb4p2 = ThreeGraphTheory(4, ftype_points=[0, 1], edges=[[1, 2, 3]])
-    sage: sq2 = (la4p2 - lb4p2).mul_project(la4p2 - lb4p2) # todo: not implemented
-    
-    sage: ma4p3 = ThreeGraphTheory(4, ftype_points=[0, 1, 2], edges=[[0, 1, 3]])
-    sage: mb4p3 = ThreeGraphTheory(4, ftype_points=[0, 1, 2], edges=[[0, 2, 3]])
-    sage: mc4p3 = ThreeGraphTheory(4, ftype_points=[0, 1, 2], edges=[[1, 2, 3]])
-    sage: sq3 = (ma4p3 + mb4p3 + mc4p3 - 1/2).mul_project(ma4p3 + mb4p3 + mc4p3 - 1/2) # todo: not implemented
-     
-    sage: em4p3 = ThreeGraphTheory(4, ftype_points=[0, 1, 2])
-    sage: sq4 = (em4p3 - 1/2).mul_project(em4p3 - 1/2) # todo: not implemented
-    
-    sage: n5q4 = ThreeGraphTheory(5, ftype_points=[0, 1, 2, 3], edges=[[0, 1, 2]])
-    sage: sq5 = (n5q4 - 1/2).mul_project(n5q4 - 1/2) # todo: not implemented
-    
-    sage: oa5t4 = ThreeGraphTheory(5, ftype_points=[0, 1, 2, 3], edges=[[0, 1, 4]])
-    sage: ob5t4 = ThreeGraphTheory(5, ftype_points=[0, 1, 2, 3], edges=[[2, 3, 4]])
-    sage: sq6 = (oa5t4 - ob5t4).mul_project(oa5t4 - ob5t4) # todo: not implemented
-     
-    sage: sos = 2/3 * sq1 + 1/6 * sq2 + 13/12 * sq3 + 11/12 * sq4 + 2 * sq5 + 1/2 * sq6 # todo: not implemented
-    sage: 3/8 >= sos + em4 # todo: not implemented
-    True
+Theories can be combined into a single product theory. To avoid keyword
+collisions, the component theories must use distinct ``relation_name`` values.
 
+::
+
+    sage: G = GraphTheory
+    sage: TG = Theory("OtherThreeGraph", arity=3, relation_name="edges3")
+    sage: CT = combine("TwoThreeGraph", G, TG)
+    sage: f = CT(3, edges=[[0,1],[0,2]], edges3=[[0,1,2]])
+    sage: f.size()
+    3
+
+Optimization interface
+----------------------
+
+The main function is :meth:`CombinatorialTheory.optimize`. It supports:
+
+- maximization/minimization (``maximize=``)
+- positivity assumptions (``positives=[...]``)
+- rounding (``exact=True``)
+- user-supplied constructions (``construction=...``)
+- saving/verifying certificates (``file=...`` + :meth:`verify`)
+- exporting the SDP instance (:meth:`external_optimize`)
+
+Examples:
+
+::
+
+    sage: G = GraphTheory
+    sage: G.reset()
+    sage: triangle = G(3, edges=[[0,1],[0,2],[1,2]])
+    sage: edge = G(2, edges=[[0,1]])
+    sage: G.optimize(triangle, 4, positives=[1/2 - edge])   # not tested
+
+Exporting a problem for another machine:
+
+::
+
+    sage: G.reset()
+    sage: G.exclude(G(3))
+    sage: G.external_optimize(G(2), 3, file="problem")       # not tested
+
+Certificates:
+
+::
+
+    sage: G.reset()
+    sage: G.exclude(G(3))
+    sage: G.optimize(G(2), 3, file="mantel_cert")            # not tested
+    sage: G.verify("mantel_cert")                            # not tested
+
+
+References
+----------
+
+.. [Raz2007] A. Razborov, *Flag algebras*, J. Symbolic Logic 72 (2007), 1239-1282.
 
 .. SEEALSO::
-    :func:`CombinatorialTheory.__init__`
-    :func:`CombinatorialTheory.exclude`
-    :func:`CombinatorialTheory.optimize_problem`
-    :func:`CombinatorialTheory.generate_flags`
+
+    :func:`Theory`
+    :class:`CombinatorialTheory`
+    :func:`combine`
+    :meth:`CombinatorialTheory.exclude`
+    :meth:`CombinatorialTheory.generate`
+    :meth:`CombinatorialTheory.optimize`
 
 AUTHORS:
 
@@ -423,6 +435,99 @@ def _min_symm_eig(M):
 
 class _CombinatorialTheory(Parent, UniqueRepresentation):
     def __init__(self, name):
+        r"""
+        A combinatorial theory (hereditary class) for flag algebra calculations.
+
+        A :class:`CombinatorialTheory` is a callable object: calling it constructs an
+        (induced) :class:`~sage.algebras.flag.flag.Flag` in the theory.
+
+        **Induced convention.**
+        When you build a flag, any relation not explicitly listed is assumed absent.
+        For graphs, this means ``G(3, edges=[[0,1]])`` is the induced 3-vertex graph
+        with exactly one edge.
+
+        **Exclusion is hereditary.**
+        Excluded flags/patterns are forbidden as induced subflags in all larger flags
+        generated by the theory, and in all optimization problems built from it.
+
+        Basic usage
+        -----------
+
+        ::
+
+            sage: G = GraphTheory
+            sage: cherry = G(3, edges=[[0,1],[0,2]])
+            sage: other = G(3, edges=[[0,1],[1,2]])
+            sage: cherry == other
+            True
+
+        Resetting and excluding
+        -----------------------
+
+        :meth:`reset` clears the excluded list; :meth:`exclude` appends to it.
+
+        ::
+
+            sage: G.reset()
+            sage: G.exclude(G(3))   # exclude empty triple
+            sage: G.exclude(G(2))   # also exclude empty edge
+            sage: G.reset()
+
+        Generating flags
+        ----------------
+
+        :meth:`generate` enumerates canonical representatives (up to isomorphism) of
+        flags of a given size, respecting exclusions. If a type is given, it generates
+        typed flags compatible with that type.
+
+        ::
+
+            sage: G.reset()
+            sage: flags = G.generate(3)
+            sage: len(flags) > 0
+            True
+
+        Optimization
+        ------------
+
+        :meth:`optimize` builds and solves a flag-algebra SDP bound for the density of
+        a target expression.
+
+        Key parameters:
+
+        - ``target``: a flag or a flag-algebra element (linear combination of flags)
+        - ``N``: expansion size (largest flags used)
+        - ``maximize``: maximize (default) or minimize
+        - ``positives``: list of expressions assumed nonnegative
+        - ``exact`` / ``denom``: attempt rational (or ring) rounding
+        - ``construction``: provide known optimal constructions (for rounding / sanity)
+        - ``file``: save a certificate to disk
+        - ``ring``: perform rounding over an extended coefficient ring (if supported)
+
+        Example (Mantel):
+
+        ::
+
+            sage: G = GraphTheory
+            sage: tri = G(3, edges=[[0,1],[0,2],[1,2]])
+            sage: e = G(2, edges=[[0,1]])
+            sage: G.reset(); G.exclude(tri)
+            sage: G.optimize(e, 3, exact=True)     # not tested
+
+        Export / verify
+        ---------------
+
+        Use :meth:`external_optimize` to export an SDP instance and :meth:`verify` to
+        check saved certificates.
+
+        .. SEEALSO::
+
+            :class:`~sage.algebras.flag.flag.Flag`
+            :class:`~sage.algebras.flag.algebra.FlagAlgebra`
+            :meth:`exclude`, :meth:`reset`, :meth:`generate`
+            :meth:`optimize`, :meth:`external_optimize`, :meth:`verify`
+
+        """
         self._name = name
         self._excluded = tuple()
         self._printlevel = 1
@@ -2811,7 +2916,7 @@ class BuiltTheory(_CombinatorialTheory):
                             blocks[xx] = tuple([[aa] for aa in blocks[xx]])
                         
         return self.element_class(self, n, ftype_points, **blocks)
-    
+
     def empty_element(self):
         r"""
         Returns the empty element, ``n``=0 and no blocks

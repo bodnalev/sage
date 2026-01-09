@@ -1,4 +1,53 @@
 r"""
+Flag algebra parents and elements
+=================================
+
+This module implements the Sage “parent/element” layer for flag algebras:
+
+- :class:`FlagAlgebra` - a parent defined by a theory, a coefficient ring, and
+ a fixed type
+- :class:`FlagAlgebraElement` - a linear combination of :class:`~sage.algebras.flag.flag.Flag`
+
+These are usually not constructed explicitly: arithmetic
+on flags coerces into the appropriate parent automatically.
+
+Basic example
+-------------
+
+::
+
+    sage: G = GraphTheory
+    sage: cherry = G(3, edges=[[0,1],[1,2]])
+    sage: point  = G(1)
+    sage: expr = cherry + point
+    sage: FA = expr.parent()
+    sage: expr.theory() == G
+    True
+
+Explicit parents
+----------------
+
+::
+
+    sage: G = GraphTheory
+    sage: alg_QQ = FlagAlgebra(G, QQ)
+    sage: t = G(1, ftype=[0])
+    sage: alg_pointed = FlagAlgebra(G, QQ, t)
+
+Changing coefficient rings is supported:
+
+::
+
+    sage: alg_RR = FlagAlgebra(G, RR)
+
+Polynomial base rings (example):
+
+::
+
+    sage: R.<x> = QQ[]
+    sage: alg_poly = FlagAlgebra(G, R)
+    sage: (x*G(2) + 1)    # doctest: +ELLIPSIS
+    ...
 
 .. SEEALSO::
     :func:`CombinatorialTheory.__init__`
@@ -35,6 +84,34 @@ from sage.all import vector
 
 
 class FlagAlgebraElement(Element):
+    r"""
+    An element of a flag algebra: a linear combination of flags.
+
+    A :class:`FlagAlgebraElement` behaves like a Sage algebra element:
+    it supports addition, multiplication, and scalar multiplication.
+
+    Key methods commonly used in calculations:
+
+    - :meth:`project` (averaging operator)
+    - :meth:`mul_project` (shorthand for ``(self*other).project()``)
+    - :meth:`theory` (return the underlying combinatorial theory)
+
+    EXAMPLES::
+
+        sage: G = GraphTheory
+        sage: cherry = G(3, edges=[[0,1],[1,2]])
+        sage: point  = G(1)
+        sage: expr = cherry + point
+        sage: expr.theory() == G
+        True
+
+    Projection shorthands::
+
+        sage: x = G(2) - 1/2
+        sage: x.mul_project(x) == (x*x).project()
+        True
+    """
+
     def __init__(self, parent, n, values):
         r"""
         Initialize a Flag Algebra Element
@@ -884,6 +961,31 @@ class FlagAlgebraElement(Element):
         return all([richcmp(v1[ii], v2[ii], op) for ii in range(len(v1))])
 
 class FlagAlgebra(Parent, UniqueRepresentation):
+    r"""
+    The parent object for a flag algebra.
+
+    A :class:`FlagAlgebra` is determined by:
+
+    - a combinatorial theory (e.g. ``GraphTheory``)
+    - a base ring (default typically ``QQ``)
+    - optionally a fixed type flag (for typed/flagged algebras)
+
+    Most users obtain a parent via ``(some_expression).parent()``.
+
+    EXAMPLES::
+
+        sage: G = GraphTheory
+        sage: alg = FlagAlgebra(G, QQ)
+        sage: point = G(1, ftype=[0])
+        sage: alg_pointed = FlagAlgebra(G, QQ, point)
+
+    Elements created by arithmetic on flags coerce into this parent::
+
+        sage: e = G(2, edges=[[0,1]])
+        sage: (e + 1).parent() == alg
+        True
+    """
+
     
     def __init__(self, theory, base=QQ, ftype=None):
         r"""
