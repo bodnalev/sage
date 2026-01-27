@@ -176,6 +176,8 @@ from functools import lru_cache
 import hashlib
 import pickle
 import os
+import re, ast
+import subprocess
 from tqdm import tqdm
 
 # This should really be in the doctests
@@ -432,6 +434,69 @@ def _min_symm_eig(M):
     import numpy as np
     Mnp = M.n().numpy()
     return min(np.linalg.eigh((Mnp.transpose() + Mnp)/2).eigenvalues)
+
+def _parse_sdpa_block_matrices(full_text, section_label, next_label):
+    m = re.search(r'%s\s*=' % re.escape(section_label), full_text)
+    if not m:
+        return []
+    start = m.end()
+    try:
+        brace_start = full_text.index('{', start)
+    except ValueError:
+        return []
+    end = len(full_text)
+    if next_label is not None:
+        pos = full_text.find(next_label, brace_start)
+        if pos != -1:
+            end = pos
+    block_text = full_text[brace_start:end]
+    body = block_text.strip()
+    body2 = re.sub(r'}\s*\n\s*{', '},\n{', body)
+    body_py = body2.replace('{', '[').replace('}', ']')
+    blocks_raw = ast.literal_eval(body_py)
+    blocks = []
+    for blk in blocks_raw:
+        if blk and isinstance(blk[0], (list, tuple)):
+            rows = [[float(str(x)) for x in row] for row in blk]
+            blocks.append(rows)
+        else:
+            diag = [float(str(x)) for x in blk]
+            blocks.append(diag)
+    return blocks
+
+def _parse_sdpa_qd_result(filename):
+    with open(filename, 'r') as f:
+        txt = f.read()
+    m = re.search(r'phase\.value\s*=\s*([A-Za-z0-9_]+)', txt)
+    status = m.group(1) if m else None
+    def _get_scalar(name):
+        m = re.search(
+            r'%s\s*=\s*([+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)' % re.escape(name),
+            txt
+        )
+        return float(m.group(1)) if m else None
+    obj_primal = _get_scalar('objValPrimal')
+    obj_dual   = _get_scalar('objValDual')
+    y_vec = None
+    m = re.search(r'xVec\s*=\s*\{([^}]*)\}', txt, re.S)
+    if m:
+        vec_body = m.group(1)
+        entries = []
+        for s in vec_body.replace('\n', '').split(','):
+            s = s.strip()
+            if s:
+                entries.append(float(s))
+        y_vec = entries
+    Z_blocks = _parse_sdpa_block_matrices(txt, 'xMat', 'yMat')
+    X_blocks = _parse_sdpa_block_matrices(txt, 'yMat', 'main loop time')
+    return {
+        'status'     : status,
+        'primal' : obj_primal,
+        'dual'   : obj_dual,
+        'y'          : Z_blocks[-2],
+        'X'   : X_blocks,
+        'Z'   : Z_blocks,
+    }
 
 class _CombinatorialTheory(Parent, UniqueRepresentation):
     def __init__(self, name):
@@ -2014,7 +2079,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
 
     def solve_sdp(self, target_element, target_size, construction, 
                   maximize=True, positives=None, file=None, 
-                  specific_ftype=None, **params):
+                  specific_ftype=None, solver="default", **params):
         r"""
         TODO Docstring
         """
@@ -2088,10 +2153,37 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
         # Then run the optimizer
         #
         
-        self.fprint("Running SDP. Used block sizes are {}".format(sdp_data[0]))
-        time.sleep(float(0.1))
-        final_sol = solve_sdp(*sdp_data)
-        time.sleep(float(0.1))
+        if solver=="default":
+            self.fprint("Running CSDP. Used block sizes are {}".format(sdp_data[0]))
+            time.sleep(float(0.1))
+            final_sol = solve_sdp(*sdp_data)
+            time.sleep(float(0.1))
+        elif solver.lower().endswith("sdpa_qd") or solver.lower().endswith("sdpa-qd"):
+            R = RealField(prec=256, sci_not=True)
+            with open("problem.dat-s", "w") as problem_file:
+                block_sizes, target, mat_inds, mat_vals = sdp_data
+                problem_file.write("{}\n{}\n".format(len(target), len(block_sizes)))
+                problem_file.write(" ".join(map(str, block_sizes)) + "\n")
+                for xx in target:
+                    problem_file.write(str(R(xx)) + " ")
+                problem_file.write("\n")
+                for ii in range(len(mat_vals)):
+                    problem_file.write("{} {} {} {} {}\n".format(
+                        mat_inds[ii*4 + 0],
+                        mat_inds[ii*4 + 1],
+                        mat_inds[ii*4 + 2],
+                        mat_inds[ii*4 + 3],
+                        str(R(mat_vals[ii]))
+                    ))
+            self.fprint("Running SDPA QD. Used block sizes are {}".format(sdp_data[0]))
+            commands = [solver, "-ds", "problem.dat-s", "-o", "sdpa.out"]
+            time.sleep(float(0.1))
+            _process_result = subprocess.run(commands, check=True)
+            time.sleep(float(0.1))
+            final_sol = _parse_sdpa_qd_result("sdpa.out")
+            os.remove("problem.dat-s")
+        else:
+            raise RuntimeError(f"Solver {solver} is not known.")
 
         if file!=None:
             if not file.endswith(".pickle"):
