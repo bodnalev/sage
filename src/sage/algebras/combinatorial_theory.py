@@ -180,94 +180,6 @@ import re, ast
 import subprocess
 from tqdm import tqdm
 
-# This should really be in the doctests
-def test_generate():
-    def test_theory(TT, nstart, nend, vals):
-        print("\nTesting {}".format(str(TT)))
-        for ii,jj in enumerate(range(nstart, nend+1)):
-            print("Size {}, the number is {} (should be {})".format(
-                jj, 
-                len(TT.generate(jj)), 
-                vals[ii]
-                ))
-    
-    CG = combine("CGraph", Color0, GraphTheory)
-    Cs = combine("Cs", Color0, Color1, symmetries=True)
-    CG.clear()
-    Cs.clear()
-    test_theory(Color0, 5, 10, [6, 7, 8, 9, 10, 11])
-    test_theory(Cs, 3, 8, [13, 22, 34, 50, 70, 95])
-    test_theory(GraphTheory, 3, 7, [4, 11, 34, 156, 1044])
-    test_theory(ThreeGraphTheory, 3, 6, [2, 5, 34, 2136])
-    test_theory(DiGraphTheory, 2, 5, [3, 16, 218, 9608])
-    test_theory(DiThreeGraphTheory, 3, 3, [16])
-    test_theory(CG, 2, 6, [6, 20, 90, 544, 5096])
-    Cs.exclude([Cs(1), Cs(1, C0=[[0]], C1=[[0]])])
-    GraphTheory.exclude(GraphTheory(3))
-    CGp = combine("CGsym", GraphTheory, Cs)
-    CGp.clear()
-    test_theory(Cs, 4, 8, [3, 3, 4, 4, 5])
-    test_theory(GraphTheory, 3, 8, [3, 7, 14, 38, 107, 410])
-    test_theory(CGp, 2, 5, [4, 8, 32, 106])
-    Css = combine("Colors3Sym", Color0, Color1, Color2, symmetries=True)
-    Css.clear()
-    pe = Css(1)
-    p0 = Css.p(1, C2=[0], C1=[0])
-    Css.exclude([pe, p0])
-    test_theory(Css, 3, 8, [3, 4, 5, 7, 8, 10])
-    Cyc4 = combine("Cyclic4", Color0, Color1, Color2, Color3, 
-                   symmetries=CyclicSymmetry(4))
-    Cyc4.clear()
-    Cyc4.exclude([
-        Cyc4(1),
-        Cyc4.p(1, C0=[0], C1=[0]),
-        Cyc4.p(1, C0=[0], C2=[0])
-    ])
-    GraphTheory.reset()
-    T4 = combine("Cyclic4Graph", Cyc4, GraphTheory)
-    Cyc6 = combine("Cyclic6", Color0, Color1, Color2, Color3, Color4, Color5, 
-                   symmetries=CyclicSymmetry(6))
-    Cyc6.clear()
-    Cyc6.exclude([
-        Cyc6(1),
-        Cyc6.p(1, C0=[0], C1=[0]),
-        Cyc6.p(1, C0=[0], C2=[0]),
-        Cyc6.p(1, C0=[0], C3=[0])
-    ])
-    T6 = combine("Cyclic6Graph", Cyc6, GraphTheory)
-    T4.clear()
-    T6.clear()
-    test_theory(Cyc4, 4, 9, [10, 14, 22, 30, 43, 55])
-    test_theory(Cyc6, 3, 7, [10, 22, 42, 80, 132])
-    test_theory(T4, 2, 5, [6, 30, 260, 3052])
-    test_theory(T6, 2, 4, [8, 62, 754])
-
-def clear_all_calculations(theory_name=None):
-    calcs_dir = os.path.join(os.getenv('HOME'), '.sage', 'calcs')
-    if not os.path.exists(calcs_dir):
-        return
-    for xx in os.listdir(calcs_dir):
-        if theory_name==None or str(xx).startswith(theory_name):
-            file_path = os.path.join(calcs_dir, xx)
-            os.remove(file_path)
-
-def show_all_calculations(theory_name=None):
-    calcs_dir = os.path.join(os.getenv('HOME'), '.sage', 'calcs')
-    if not os.path.exists(calcs_dir):
-        return
-    for xx in os.listdir(calcs_dir):
-        file_path = os.path.join(calcs_dir, xx)
-        file_theory = str(xx).split(".")[0]
-        if theory_name==None:
-            with open(file_path , "rb") as file:
-                data = pickle.load(file)
-            if data != None:
-                print(file_theory + ": " + str(data["key"][:2]))
-        elif str(xx).startswith(theory_name):
-            with open(file_path , "rb") as file:
-                data = pickle.load(file)
-            if data != None:
-                print(data["key"][:2])
 
 # Primitive rounding methods
 def _flatten_matrix(mat, doubled=False):
@@ -386,6 +298,13 @@ def _round_adaptive(ls, onevec, denom=1024):
     return best_vec, ((best_vec-orig)/(len(orig)**0.5)).norm()
 
 def _remove_kernel(mat, factor=1024, threshold=1e-4):
+    r"""
+    Kernel removal method for matrices.
+
+    Uses the LLL algorithm to identify kernels of a given matrix with simple
+    rational base vectors and returns a matrix where this space is quotiented
+    out and a matrix that can map back to the original space.
+    """
     d = mat.nrows()
     M_scaled = matrix(ZZ, [[round(xx*factor) for xx in vv] for vv in mat])
     M_augmented = matrix.identity(ZZ, d).augment(M_scaled)
@@ -405,6 +324,12 @@ def _remove_kernel(mat, factor=1024, threshold=1e-4):
     return kernel_removed_mat, mat_recover
 
 def _custom_psd_test(M):
+    r"""
+    Tests if a matrix is positive semi-definite.
+
+    Uses the same method as an ldlt decomposition. The sage default 
+    test works similarly but requres stronger conditions on the field. 
+    """
     if not M.is_symmetric():
         return False
     R = M.base_ring()
@@ -431,11 +356,20 @@ def _custom_psd_test(M):
     return True
 
 def _min_symm_eig(M):
+    r"""
+    Returns the smallest eigenvalue of a symmetric matrix.
+
+    Returns a numerical approximation using numpy, for debugging
+    purposes.
+    """
     import numpy as np
     Mnp = M.n().numpy()
     return min(np.linalg.eigh((Mnp.transpose() + Mnp)/2).eigenvalues)
 
 def _parse_sdpa_block_matrices(full_text, section_label, next_label):
+    r"""
+    Helper function to read sdpa output matrices.
+    """
     m = re.search(r'%s\s*=' % re.escape(section_label), full_text)
     if not m:
         return []
@@ -465,6 +399,12 @@ def _parse_sdpa_block_matrices(full_text, section_label, next_label):
     return blocks
 
 def _parse_sdpa_qd_result(filename):
+    r"""
+    Reads the sdpa output and returns the solution as a python dictionary.
+
+    The return dictionary contains entries for:
+    'status', 'primal', 'dual', 'y', 'X', Z'
+    """
     with open(filename, 'r') as f:
         txt = f.read()
     m = re.search(r'phase\.value\s*=\s*([A-Za-z0-9_]+)', txt)
@@ -477,16 +417,6 @@ def _parse_sdpa_qd_result(filename):
         return float(m.group(1)) if m else None
     obj_primal = _get_scalar('objValPrimal')
     obj_dual   = _get_scalar('objValDual')
-    y_vec = None
-    m = re.search(r'xVec\s*=\s*\{([^}]*)\}', txt, re.S)
-    if m:
-        vec_body = m.group(1)
-        entries = []
-        for s in vec_body.replace('\n', '').split(','):
-            s = s.strip()
-            if s:
-                entries.append(float(s))
-        y_vec = entries
     Z_blocks = _parse_sdpa_block_matrices(txt, 'xMat', 'yMat')
     X_blocks = _parse_sdpa_block_matrices(txt, 'yMat', 'main loop time')
     return {
@@ -668,26 +598,6 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
 
         OUTPUT:
             None
-
-        EXAMPLES:
-
-            sage: obj = SomeClass()  # Assume SomeClass defines _name and _calcs_dir appropriately.
-            sage: obj._save("example data", key="sample")
-            sage: file_name = obj._name + "." + hashlib.sha256(pickle.dumps((obj, "sample"))).hexdigest()
-            sage: file_path = os.path.join(obj._calcs_dir(), file_name)
-            sage: os.path.exists(file_path)
-            True
-
-        TESTS:
-
-            sage: obj._save("data", name="test_file.pkl")
-            sage: os.path.exists("test_file.pkl")
-            True
-
-            sage: obj._save("data")  # Neither key nor name provided.
-            Traceback (most recent call last):
-            ...
-            ValueError: Either the key or the name must be provided!
         """
         if name == None:
             if key == None:
@@ -729,25 +639,6 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
 
         OUTPUT:
             The data stored in the file if found and valid; otherwise, ``None``.
-
-        EXAMPLES:
-
-            sage: obj = SomeClass()  # Assume SomeClass defines _name and _calcs_dir appropriately.
-            sage: # Attempt to load data using a key.
-            sage: data = obj._load(key="sample_key")
-            sage: data  # Should return the saved data or None if not found.
-
-        TESTS:
-
-            sage: # Test: loading a non-existent file returns None.
-            sage: obj._load(name="nonexistent_file.pkl")
-            None
-
-            sage: # Test: key mismatch triggers a warning and returns None.
-            sage: obj._load(key="incorrect_key", name="existing_file.pkl")
-            Traceback (most recent call last):
-            ...
-            Warning: Hash collision or corrupted data!
         """
         if key != None:
             serialized_key = pickle.dumps((self, key))
@@ -1337,14 +1228,6 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             - ``constraints_data`` -- tuple;
             - ``**kwargs`` -- keyword arguments for rounding parameters:
                 * ``denom`` (integer, default: 1024): the denominator used for rounding.
-
-        EXAMPLES:
-
-            sage: 
-
-        TESTS:
-
-            sage: 
         """
         
         import numpy as np
@@ -2929,6 +2812,7 @@ class BuiltTheory(_CombinatorialTheory):
         _CombinatorialTheory.__init__(self, name)
     
     # Parent methods
+
     def _element_constructor_(self, n, **kwds):
         r"""
         Construct elements of this theory
@@ -3180,12 +3064,14 @@ class BuiltTheory(_CombinatorialTheory):
         EXAMPLES:
 
             sage: GraphTheory._get_relevant_ftypes(3)
-            asd
+            [(2, Ftype on 1 points with edges=(), 3)]
 
         TESTS:
 
             sage: GraphTheory._get_relevant_ftypes(-1)
-            asd
+            Traceback (most recent call last):
+            ...
+            ValueError: Target size should be non-negative!
         """
         if target_size < 0:
             raise ValueError("Target size should be non-negative!")
@@ -3266,22 +3152,106 @@ class BuiltTheory(_CombinatorialTheory):
         - ``ftype`` -- Flag; the ftype of the returned structures
 
         OUTPUT: List of all flags with given size and ftype
-        
+
         EXAMPLES::
 
-        There are 4 graphs on 3 vertices. Flags with empty
-        ftype correspond to elements of the theory ::
+            There are 4 graphs on 3 vertices. Flags with empty
+            ftype correspond to elements of the theory ::
 
-            
-            sage: len(GraphTheory.generate_flags(3))
-            4
-        
+                sage: GraphTheory.reset()
+                sage: len(GraphTheory.generate_flags(3))
+                4
+
         .. NOTE::
 
             :func:`generate` is an alias for this.
             See the notes on :func:`optimize_problem`. A large `n` can
             result in large number of structures.
+
+        TESTS::
+
+            We test basic generation counts for a selection of theories.
+
+                sage: def _gen_counts(TT, nstart, nend):
+                ....:     return [len(TT.generate(n)) for n in range(nstart, nend + 1)]
+
+                sage: CG = combine("CGraph_doctest", Color0, GraphTheory)
+                sage: Cs = combine("Cs_doctest", Color0, Color1, symmetries=True)
+                sage: CG.reset(); Cs.reset(); CG.clear(); Cs.clear(); GraphTheory.reset()
+
+                sage: _gen_counts(Color0, 5, 10)
+                [6, 7, 8, 9, 10, 11]
+                sage: _gen_counts(Cs, 3, 8)
+                [13, 22, 34, 50, 70, 95]
+                sage: _gen_counts(GraphTheory, 3, 7)
+                [4, 11, 34, 156, 1044]
+                sage: _gen_counts(ThreeGraphTheory, 3, 6)
+                [2, 5, 34, 2136]
+                sage: _gen_counts(DiGraphTheory, 2, 4)
+                [3, 16, 218]
+                sage: len(DiGraphTheory.generate(5))  # long time
+                9608
+                sage: _gen_counts(DiThreeGraphTheory, 3, 3)
+                [16]
+                sage: _gen_counts(CG, 2, 5)
+                [6, 20, 90, 544]
+                sage: len(CG.generate(6))  # long time
+                5096
+
+            Exclusions / symmetry variants.
+
+                sage: Cs.exclude([Cs(1), Cs(1, C0=[[0]], C1=[[0]])])
+                sage: GraphTheory.exclude(GraphTheory(3))
+                sage: CGp = combine("CGsym_doctest", GraphTheory, Cs)
+                sage: CGp.reset(); CGp.clear()
+                sage: _gen_counts(Cs, 4, 8)
+                [3, 3, 4, 4, 5]
+                sage: _gen_counts(GraphTheory, 3, 8)
+                [3, 7, 14, 38, 107, 410]
+                sage: _gen_counts(CGp, 2, 5)
+                [4, 8, 32, 106]
+                sage: Css = combine("Colors3Sym_doctest", Color0, Color1, Color2, symmetries=True)
+                sage: Css.reset(); Css.clear()
+                sage: pe = Css(1)
+                sage: p0 = Css.p(1, C2=[0], C1=[0])
+                sage: Css.exclude([pe, p0])
+                sage: _gen_counts(Css, 3, 8)
+                [3, 4, 5, 7, 8, 10]
+                sage: Cyc4 = combine("Cyclic4_doctest", Color0, Color1, Color2, Color3,
+                ....:                symmetries=CyclicSymmetry(4))
+                sage: Cyc4.reset(); Cyc4.clear()
+                sage: Cyc4.exclude([
+                ....:     Cyc4(1),
+                ....:     Cyc4.p(1, C0=[0], C1=[0]),
+                ....:     Cyc4.p(1, C0=[0], C2=[0])
+                ....: ])
+                sage: GraphTheory.reset()
+                sage: T4 = combine("Cyclic4Graph_doctest", Cyc4, GraphTheory)
+
+                sage: Cyc6 = combine("Cyclic6_doctest", Color0, Color1, Color2, Color3, Color4, Color5,
+                ....:                symmetries=CyclicSymmetry(6))
+                sage: Cyc6.reset(); Cyc6.clear()
+                sage: Cyc6.exclude([
+                ....:     Cyc6(1),
+                ....:     Cyc6.p(1, C0=[0], C1=[0]),
+                ....:     Cyc6.p(1, C0=[0], C2=[0]),
+                ....:     Cyc6.p(1, C0=[0], C3=[0])
+                ....: ])
+                sage: T6 = combine("Cyclic6Graph_doctest", Cyc6, GraphTheory)
+
+                sage: T4.reset(); T6.reset(); T4.clear(); T6.clear()
+
+                sage: _gen_counts(Cyc4, 4, 9)
+                [10, 14, 22, 30, 43, 55]
+                sage: _gen_counts(Cyc6, 3, 7)
+                [10, 22, 42, 80, 132]
+                sage: _gen_counts(T4, 2, 5)
+                [6, 30, 260, 3052]
+                sage: _gen_counts(T6, 2, 4)
+                [8, 62, 754]
+                sage: GraphTheory.reset()
         """
+
         
         #Handling edge cases
         if ftype==None:
@@ -3485,9 +3455,10 @@ class BuiltTheory(_CombinatorialTheory):
 
         TESTS::
 
-            sage: table = GraphTheory.mul_project_table(2, 2, GraphTheory(1, ftype_points=[0]), [])
+            sage: table = HypercubeVertexTheory.mul_project_table(
+            ....:     2, 2, HypercubeVertexTheory(1, edges=[], points=[[0]], ftype_points=[0]), [])
             sage: table[1][0, 0]
-            1/3
+            1/4
         """
 
         #Sanity checks
@@ -3594,7 +3565,6 @@ class ExoticTheory(_CombinatorialTheory):
         This example shows how to create the theory for graphs 
         with ordered vertices (or equivalently 0-1 matrices)::
             
-            sage: from sage.algebras.flag_algebras import *
             sage: def test_generator_ov_graph(n):
             ....:    full = list(itertools.combinations(range(n), int(2)))
             ....:    for ii in range(binomial(n, 2)+1):
@@ -3605,7 +3575,7 @@ class ExoticTheory(_CombinatorialTheory):
             ....:    return (n, tuple(ftype_points), \
             ....:    tuple(sorted(list(edges))))
             ....: 
-            sage: TestOVGraphTheory = CombinatorialTheory('TestOVGraph', \
+            sage: TestOVGraphTheory = ExoticTheory('TestOVGraph', \
             ....: test_generator_ov_graph, test_identify_ov_graph, edges=2)
             sage: TestOVGraphTheory
             Theory for TestOVGraph
@@ -3657,21 +3627,13 @@ class ExoticTheory(_CombinatorialTheory):
 
         Create an empty graph on 3 vertices ::
 
-            sage: from sage.algebras.flag_algebras import *
             sage: GraphTheory(3)
-            Flag on 3 points, ftype from [] with edges=[]
+            Flag on 3 points, ftype from () with edges=()
         
         Create an edge with one point marked as an ftype ::
         
             sage: GraphTheory(2, ftype_points=[0], edges=[[0, 1]])
-            Flag on 2 points, ftype from [0] with edges=[[0, 1]]
-            
-        Create a RamseyGraphTheory flag, a fully colored
-        triangle (useful for calculating R(K_3), see 
-        :func:`solve_problem`) ::
-            
-            sage: RamseyGraphTheory(3, edges=[[0, 1], [0, 2], [1, 2]])
-            Flag on 3 points, ftype from [] with edges=[[0, 1], [0, 2], [1, 2]], edges_marked=[]
+            Flag on 2 points, ftype from (0,) with edges=(01)
 
         .. NOTE::
 
@@ -3726,9 +3688,8 @@ class ExoticTheory(_CombinatorialTheory):
 
         EXAMPLES::
 
-            sage: from sage.algebras.flag_algebras import *
             sage: GraphTheory.empty_element()
-            Ftype on 0 points with edges=[]
+            Ftype on 0 points with edges=()
 
         .. NOTE::
 
@@ -3976,7 +3937,6 @@ class ExoticTheory(_CombinatorialTheory):
         There are 4 graphs on 3 vertices. Flags with empty
         ftype correspond to elements of the theory ::
 
-            sage: from sage.algebras.flag_algebras import *
             sage: len(GraphTheory.generate_flags(3))
             4
         
@@ -4054,14 +4014,13 @@ class ExoticTheory(_CombinatorialTheory):
 
         TESTS::
 
-            sage: from sage.algebras.flag_algebras import *
             sage: table = GraphTheory.mul_project_table(2, 2, GraphTheory(1, ftype_points=[0]), [])
             sage: table[1][0, 0]
             1/3
-            
-            sage: table = RamseyGraphTheory.mul_project_table(3, 3, RamseyGraphTheory(2, ftype_points=[0, 1]), [])
-            sage: table[3][1, 1]
-            1/6
+
+            sage: table = ThreeGraphTheory.mul_project_table(3, 3, ThreeGraphTheory(2, ftype_points=[0, 1]), [])
+            sage: table[1][0, 0]
+            1/2
         """
         large_size = large_ftype.size()
         if ftype_inj==None:
@@ -4215,6 +4174,41 @@ def combine(name, *theories, symmetries=False):
         ser_data = (None, ser_data)
     ret_theory = BuiltTheory(name, _from_data=ser_data)
     return ret_theory
+
+
+def _clear_all_calculations(theory_name=None):
+    r"""
+    Debug function to clear all memoized data.
+    """
+    calcs_dir = os.path.join(os.getenv('HOME'), '.sage', 'calcs')
+    if not os.path.exists(calcs_dir):
+        return
+    for xx in os.listdir(calcs_dir):
+        if theory_name==None or str(xx).startswith(theory_name):
+            file_path = os.path.join(calcs_dir, xx)
+            os.remove(file_path)
+
+def _show_all_calculations(theory_name=None):
+    r"""
+    Debug function to display all memoized data.
+    """
+    calcs_dir = os.path.join(os.getenv('HOME'), '.sage', 'calcs')
+    if not os.path.exists(calcs_dir):
+        return
+    for xx in os.listdir(calcs_dir):
+        file_path = os.path.join(calcs_dir, xx)
+        file_theory = str(xx).split(".")[0]
+        if theory_name==None:
+            with open(file_path , "rb") as file:
+                data = pickle.load(file)
+            if data != None:
+                print(file_theory + ": " + str(data["key"][:2]))
+        elif str(xx).startswith(theory_name):
+            with open(file_path , "rb") as file:
+                data = pickle.load(file)
+            if data != None:
+                print(data["key"][:2])
+
 
 # Pre-defined theories
 GraphTheory = BuiltTheory("Graph")
