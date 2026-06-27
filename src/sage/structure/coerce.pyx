@@ -1292,7 +1292,7 @@ cdef class CoercionModel:
                 res = mul_method(x)
                 if res is not None and res is not NotImplemented:
                     return res
-
+        
         # We should really include the underlying error.
         # This causes so much headache.
         raise bin_op_exception(op, x, y)
@@ -1427,6 +1427,17 @@ cdef class CoercionModel:
                 self._record_exception()
             else:
                 return self.canonical_coercion(x, y)
+
+        try:
+            return x.custom_coerce(y)
+        except AttributeError:
+            self._record_exception()
+        
+        try:
+            ym, xm = y.custom_coerce(x)
+            return (xm, ym)
+        except AttributeError:
+            self._record_exception()
 
         # Allow coercion of 0 even if no coercion from Z
         if (x_numeric or is_Integer(x)) and not x and type(yp) is not type:

@@ -29,6 +29,9 @@ from sage.algebras.lie_algebras.all import *
 from sage.algebras.quantum_groups.all import *
 from sage.algebras.lie_conformal_algebras.all import *
 
+from sage.algebras.flag_algebras import *
+from sage.algebras.combinatorial_theory import *
+
 # Algebra base classes
 from sage.algebras.free_algebra import FreeAlgebra
 from sage.algebras.free_algebra_quotient import FreeAlgebraQuotient
