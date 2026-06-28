@@ -112,7 +112,8 @@ from sage.all import QQ
 from cysignals.signals cimport sig_check
 from sage.structure.element cimport Element
 from sage.structure.coerce cimport coercion_model
-from blisspy cimport canonical_form_from_edge_list, automorphism_group_gens_from_edge_list
+from blisspy._core cimport canonical_form_from_edge_list
+from blisspy._core cimport automorphism_group_gens_from_edge_list
 from tqdm import tqdm
 
 # Elementary block operations

@@ -46,6 +46,11 @@ py.install_sources(
   'weyl_algebra.py',
   'yangian.py',
   'yokonuma_hecke_algebra.py',
+  'combinatorial_theory.py',
+  'flag_algebras.py',
+  # 'flag.pxd',
+  # 'flag.pyi',
+  'flag.pyx',
   subdir: 'sage/algebras',
 )
 
@@ -53,6 +58,7 @@ extension_data = {
   'clifford_algebra_element': files('clifford_algebra_element.pyx'),
   'exterior_algebra_groebner': files('exterior_algebra_groebner.pyx'),
   'octonion_algebra': files('octonion_algebra.pyx'),
+  'flag': files('flag.pyx'),
 }
 
 foreach name, pyx : extension_data
