@@ -584,7 +584,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
         Saves data to persistent storage.
 
         The file name is determined based on the provided arguments. If ``name`` is not
-        given, a hashed key is generated from ``(self, key)`` and appended to ``self._name``.
+        given, a hashed key is generated from ``key`` and appended to ``self._name``.
         The file is saved in the directory given by ``path`` if provided, or in the directory
         returned by ``self._calcs_dir()`` if ``path`` is None. If ``path`` is an empty string,
         the file is saved in the current working directory.
@@ -602,7 +602,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
         if name == None:
             if key == None:
                 raise ValueError("Either the key or the name must be provided!")
-            serialized_key = pickle.dumps((self, key))
+            serialized_key = pickle.dumps(key)
             hashed_key = hashlib.sha256(serialized_key).hexdigest()
             file_name = self._name + "." + hashed_key
         else:
@@ -625,7 +625,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
         Loads data from persistent storage.
 
         The file name is determined by the provided ``key`` or explicitly by ``name``.
-        If ``name`` is not provided, a hash is computed from ``(self, key)`` and appended to
+        If ``name`` is not provided, a hash is computed from ``key`` and appended to
         ``self._name``. The file is then sought in the directory specified by ``path`` (if given)
         or in the directory returned by ``self._calcs_dir()`` (if ``path`` is None). If the file
         does not exist, the function returns ``None``. Additionally, if a key is provided and the
@@ -641,7 +641,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             The data stored in the file if found and valid; otherwise, ``None``.
         """
         if key != None:
-            serialized_key = pickle.dumps((self, key))
+            serialized_key = pickle.dumps(key)
             hashed_key = hashlib.sha256(serialized_key).hexdigest()
             file_name = self._name + "." + hashed_key
         if name != None:
@@ -3320,7 +3320,7 @@ class BuiltTheory(_CombinatorialTheory):
                     ret = self.generate_flags(n, ftype, run_bound=infinity)
                 else:
                     raise RuntimeError("Calculation interrupted")
-        self._save(ret, key)
+        self._save(ret, key=key)
         return ret
     
     generate = generate_flags
