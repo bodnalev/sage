@@ -108,7 +108,7 @@ AUTHORS:
 # ****************************************************************************
 
 import itertools
-from sage.all import QQ
+from sage.rings.rational_field import QQ
 from cysignals.signals cimport sig_check
 from sage.structure.element cimport Element
 from sage.structure.coerce cimport coercion_model

@@ -161,7 +161,7 @@ import itertools
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.all import QQ, NN, Integer, ZZ, infinity, RR, RDF, RealField
-from sage.algebras.flag import BuiltFlag, ExoticFlag, Pattern, inductive_generator, overlap_generator
+from sage.algebras.flag import BuiltFlag, ExoticFlag, Pattern
 from sage.algebras.flag_algebras import FlagAlgebra, FlagAlgebraElement
 
 from sage.categories.sets_cat import Sets
@@ -3251,7 +3251,7 @@ class BuiltTheory(_CombinatorialTheory):
                 [8, 62, 754]
                 sage: GraphTheory.reset()
         """
-
+        from sage.algebras.flag import inductive_generator, overlap_generator
         
         #Handling edge cases
         if ftype==None:
