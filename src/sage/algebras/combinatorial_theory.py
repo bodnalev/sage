@@ -160,17 +160,25 @@ import itertools
 
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
-from sage.all import QQ, NN, Integer, ZZ, infinity, RR, RDF, RealField
 from sage.algebras.flag import BuiltFlag, ExoticFlag, Pattern
 from sage.algebras.flag_algebras import FlagAlgebra, FlagAlgebraElement
 
 from sage.categories.sets_cat import Sets
-from sage.all import vector, matrix, diagonal_matrix
+from sage.rings.rational_field import QQ
+from sage.rings.semirings.non_negative_integer_semiring import NN
+from sage.rings.integer import Integer
+from sage.rings.integer_ring import ZZ
+from sage.rings.infinity import infinity
+from sage.rings.real_mpfr import RR, RealField
+from sage.rings.real_double import RDF
+
+from sage.modules.free_module_element import vector
+from sage.matrix.constructor import matrix
+from sage.matrix.special import diagonal_matrix
 
 from sage.misc.prandom import randint
 from sage.arith.misc import falling_factorial, binomial, factorial
 from sage.misc.functional import round
-from sage.functions.other import ceil
 from functools import lru_cache
 
 import hashlib
