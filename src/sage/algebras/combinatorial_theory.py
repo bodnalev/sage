@@ -1809,6 +1809,8 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
                 else:
                     X_ii += base.T * X_original[block_index + plus_index] * base
             block_index += len(table_constructor[params])
+            if X_ii==None:
+                X_ii = matrix(QQ, [])
             X_flat = _flatten_matrix(X_ii.rows())
             if QQ.has_coerce_map_from(X_ii.base_ring()):
                 X_flat = [
