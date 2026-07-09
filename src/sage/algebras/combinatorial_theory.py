@@ -4129,17 +4129,17 @@ def combine(name, *theories, symmetries=False):
         if len(theories)!=2:
             raise ValueError("Can't combine more than 2 theories with " + 
                              "different parameters.")
-        if symmetries is not False:
+        if symmetries != False:
             import warnings
             warnings.warn("Combined theories have different parameters, " + 
                           "symmetries will be ignored.")
             symmetries = False
 
-    if symmetries is not False:
+    if symmetries != False:
         #Make everything in the same group
         for xx in result_signature:
             result_signature[xx]["group"] = 0
-        if symmetries is True:
+        if symmetries == True:
             #This case symmetry is trivial for the entire group
             result_symmetry = [(len(theories), len(theories), tuple())]
         else:
