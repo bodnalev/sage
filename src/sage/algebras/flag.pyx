@@ -108,13 +108,11 @@ AUTHORS:
 # ****************************************************************************
 
 import itertools
-from sage.rings.rational_field import QQ
 from cysignals.signals cimport sig_check
 from sage.structure.element cimport Element
 from sage.structure.coerce cimport coercion_model
 from blisspy._core cimport canonical_form_from_edge_list
 from blisspy._core cimport automorphism_group_gens_from_edge_list
-from tqdm import tqdm
 
 # Elementary block operations
 cdef tuple _subblock_helper(tuple points, tuple block, bint inverse = False):
@@ -726,11 +724,13 @@ cdef class _Flag(Element):
     # Flag algebra compatibility
     def afae(self):
         from sage.algebras.flag_algebras import FlagAlgebra
+        from sage.rings.rational_field import QQ
         alg = FlagAlgebra(self.theory(), QQ, self.ftype())
         return alg(self)
 
     def custom_coerce(self, other):
         from sage.algebras.flag_algebras import FlagAlgebra, FlagAlgebraElement
+        from sage.rings.rational_field import QQ
         if isinstance(other, _Flag) or isinstance(other, Pattern):
             if self.ftype()!=other.ftype():
                 raise ValueError("The ftypes must agree.")
@@ -2086,10 +2086,12 @@ cdef class Pattern(_Flag):
         ret = [xx for xx in aflags if self.is_compatible(xx)]
         return ret
 
-    def as_flag_algebra_element(self, base=QQ):
+    def as_flag_algebra_element(self, base=None):
+        from sage.rings.rational_field import QQ
         from sage.algebras.flag_algebras import FlagAlgebra
         from sage.all import vector
-
+        if base==None:
+            base = QQ
         targ_alg = FlagAlgebra(self.theory(), base=base, ftype=self.ftype())
         aflags = self.theory().generate(self.size(), self.ftype())
         targ_vec = {}

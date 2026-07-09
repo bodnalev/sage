@@ -29,9 +29,6 @@ from sage.algebras.lie_algebras.all import *
 from sage.algebras.quantum_groups.all import *
 from sage.algebras.lie_conformal_algebras.all import *
 
-from sage.algebras.flag_algebras import *
-from sage.algebras.combinatorial_theory import *
-
 # Algebra base classes
 from sage.algebras.free_algebra import FreeAlgebra
 from sage.algebras.free_algebra_quotient import FreeAlgebraQuotient
@@ -70,3 +67,15 @@ lazy_import('sage.algebras.q_system', 'QSystem')
 lazy_import('sage.algebras.cluster_algebra', 'ClusterAlgebra')
 
 lazy_import('sage.algebras.yangian', 'Yangian')
+
+lazy_import('sage.algebras.combinatorial_theory', [
+    "BuiltTheory", "ExoticTheory", "combine", 
+    "GraphTheory", "DiGraphTheory", "ThreeGraphTheory", "DiThreeGraphTheory", "FourGraphTheory", 
+    "Color0", "Color1", "Color2", "Color3", "Color4", "Color5", "Color6", "Color7",
+    "FullSymmetry", "NoSymmetry", "PermutationTheory", "OEGraphTheory", "OVGraphTheory", 
+    "HypercubeGraphTheory", "HypercubeVertexTheory", "Theory"
+])
+
+lazy_import('sage.algebras.flag_algebras', [
+    "FlagAlgebraElement", "FlagAlgebra" 
+])
