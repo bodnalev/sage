@@ -5,8 +5,9 @@ Flag algebra parents and elements
 This module implements the Sage “parent/element” layer for flag algebras:
 
 - :class:`FlagAlgebra` - a parent defined by a theory, a coefficient ring, and
- a fixed type
-- :class:`FlagAlgebraElement` - a linear combination of :class:`~sage.algebras.flag.flag.Flag`
+  a fixed type
+- :class:`FlagAlgebraElement` - a linear combination of
+  :class:`~sage.algebras.flag.flag.Flag`
 
 These are usually not constructed explicitly: arithmetic
 on flags coerces into the appropriate parent automatically.
@@ -150,7 +151,7 @@ class FlagAlgebraElement(Element):
 
         OUTPUT: The ftype of the parent FlagAlgebra. A :class:`Flag` element
 
-        EXAMPLES::
+        EXAMPLES:
 
         The ftype of a :class:`Flag` is the same as the ftype of the 
         :class:`FlagAlgebraElement` we can construct from it ::
@@ -176,7 +177,6 @@ class FlagAlgebraElement(Element):
         OUTPUT: The size of each flag is :func:`flags`. 
 
         TESTS::
-
             
             sage: FG = FlagAlgebra(GraphTheory, QQ)
             sage: FGElem = FG._an_element_()
@@ -197,10 +197,9 @@ class FlagAlgebraElement(Element):
 
         OUTPUT: The list of flags
 
-        EXAMPLES::
+        EXAMPLES:
 
         3 vertex graphs with empty ftype ::
-
             
             sage: g = GraphTheory(3)
             sage: g.afae()
@@ -229,7 +228,6 @@ class FlagAlgebraElement(Element):
             :func:`Flag.afae`
 
         TESTS::
-
             
             sage: g.afae().flags() == g.theory().generate_flags(g.size(), g.ftype())
             True
@@ -243,11 +241,10 @@ class FlagAlgebraElement(Element):
         
         OUTPUT: A vector
 
-        EXAMPLES::
+        EXAMPLES:
 
         A flag transformed to a flag algebra element has 
         all zeroes except one entry, itself ::
-
             
             sage: g = GraphTheory(3)
             sage: g.afae().values()
@@ -268,11 +265,10 @@ class FlagAlgebraElement(Element):
         
         OUTPUT: A vector
 
-        EXAMPLES::
+        EXAMPLES:
 
         A flag transformed to a flag algebra element has 
         all zeroes except one entry, itself ::
-
             
             sage: g = GraphTheory(3)
             sage: g.afae()._vector_(QQ['x'])
@@ -342,10 +338,9 @@ class FlagAlgebraElement(Element):
         then only shows nonzero entries.
 
 
-        EXAMPLES::
+        EXAMPLES:
 
         Short list, so display all ::
-
             
             sage: gf = GraphTheory(3).afae()
             sage: gf
@@ -438,10 +433,9 @@ class FlagAlgebraElement(Element):
 
         OUTPUT: The sum
 
-        EXAMPLES::
+        EXAMPLES:
 
         The smaller size is shifted to match the larger ::
-
             
             sage: g = GraphTheory(3).afae()
             sage: e = GraphTheory(2).afae()
@@ -471,10 +465,9 @@ class FlagAlgebraElement(Element):
         r"""
         Subtract a FlagAlgebraElement from this
 
-        EXAMPLES::
+        EXAMPLES:
 
         This also shifts the smaller flag to match the larger ::
-
             
             sage: g = GraphTheory(3).afae()
             sage: e = GraphTheory(2).afae()
@@ -509,10 +502,9 @@ class FlagAlgebraElement(Element):
         The result will have size 
         `self.size() + other.size() - self.ftype().size()`
 
-        EXAMPLES::
+        EXAMPLES:
 
         Two empty edges multiplied together has size 4 ::
-
             
             sage: e = GraphTheory(2).afae()
             sage: (e*e).size()
@@ -568,10 +560,9 @@ class FlagAlgebraElement(Element):
 
         OUTPUT: The `FlagAlgebraElement` resulting from the division
 
-        EXAMPLES::
+        EXAMPLES:
 
         If 1 can be divided by that, then the division is allowed ::
-
             
             sage: var('x')
             x
@@ -600,10 +591,9 @@ class FlagAlgebraElement(Element):
         The result will have size equal to 
         `self.size() + amount`, but the elements will be equal
         
-        EXAMPLES::
+        EXAMPLES:
 
         Edge shifted to size `3` ::
-
             
             sage: edge = GraphTheory(2, edges=[[0, 1]])
             sage: (edge.afae()<<1).values()
@@ -635,7 +625,7 @@ class FlagAlgebraElement(Element):
         The result will have size equal to 
         `self.size() - amount`
         
-        EXAMPLES::
+        EXAMPLES:
 
         Cherry averaged to size `2` ::
             
@@ -703,11 +693,10 @@ class FlagAlgebraElement(Element):
 
         OUTPUT: the `FlagAlgebraElement` resulting from the projection
 
-        EXAMPLES::
+        EXAMPLES:
 
         If the center of a cherry is flagged, then the projection has
         coefficient 1/3 ::
-
             
             sage: p_cherry = GraphTheory(3, edges=[[0, 1], [0, 2]], ftype_points=[0])
             sage: p_cherry.afae().project().values()
@@ -738,10 +727,9 @@ class FlagAlgebraElement(Element):
         OUTPUT: the `FlagAlgebraElement` resulting from the multiplication
             and projection
 
-        EXAMPLES::
+        EXAMPLES:
 
         Pointed edge multiplied with itself and projected ::
-
             
             sage: felem = GraphTheory(2, edges=[[0, 1]], ftype_points=[0]).afae()
             sage: felem.mul_project(felem).values()
@@ -791,10 +779,9 @@ class FlagAlgebraElement(Element):
         Randomly choosing self.size() points in other, the
         probability of getting self.
 
-        EXAMPLES::
+        EXAMPLES:
 
         Density of an edge in the cherry graph is 2/3 ::
-
             
             sage: cherry = GraphTheory(3, edges=[[0, 1], [0, 2]]).afae()
             sage: edge = GraphTheory(2, edges=[[0, 1]]).afae()
@@ -915,10 +902,9 @@ class FlagAlgebraElement(Element):
         Since the parent agrees, the ftype too. They are shifted to the
         same size and the values compared elementwise.
 
-        EXAMPLES::
+        EXAMPLES:
 
         Trivial example `g <= 2*g` ::
-
             
             sage: g = GraphTheory(3).afae()
             sage: g <= 2*g
@@ -1002,7 +988,7 @@ class FlagAlgebra(Parent, UniqueRepresentation):
 
         OUTPUT: The resulting FlagAlgebra
 
-        EXAMPLES::
+        EXAMPLES:
 
         Create the FlagAlgebra for GraphTheory (without any ftype) ::
 
@@ -1072,10 +1058,9 @@ class FlagAlgebra(Parent, UniqueRepresentation):
         size value and a list of coefficients, whose length must be precisely the
         number of flags.
 
-        EXAMPLES::
+        EXAMPLES:
 
         Construct from a constant ::
-
             
             sage: FA = FlagAlgebra(GraphTheory, QQ)
             sage: FA(3)
@@ -1165,7 +1150,6 @@ class FlagAlgebra(Parent, UniqueRepresentation):
         Returns a short text representation
 
         EXAMPLES::
-
             
             sage: FlagAlgebra(GraphTheory, QQ)
             Flag Algebra with Ftype on 0 points with edges=() over Rational Field
@@ -1180,11 +1164,10 @@ class FlagAlgebra(Parent, UniqueRepresentation):
         r"""
         Returns the ftype of this FlagAlgebra.
 
-        EXAMPLES::
+        EXAMPLES:
 
         Without specifying anything in the constructor, the ftype
         is empty ::
-
             
             sage: FA = FlagAlgebra(GraphTheory, QQ)
             sage: FA.ftype()
@@ -1207,10 +1190,9 @@ class FlagAlgebra(Parent, UniqueRepresentation):
         Returns the :class:`CombinatorialTheory` object, whose
         flags form the basis of this FlagAlgebra
 
-        EXAMPLES::
+        EXAMPLES:
 
         This is the same as provided in the constructor ::
-
             
             sage: FA = FlagAlgebra(GraphTheory, QQ)
             sage: FA.theory()
@@ -1232,7 +1214,6 @@ class FlagAlgebra(Parent, UniqueRepresentation):
         Same as `base_ring` of the `base` provided in the constructor
 
         EXAMPLES::
-
             
             sage: FA = FlagAlgebra(GraphTheory, QQ)
             sage: FA.base_ring()
@@ -1251,7 +1232,6 @@ class FlagAlgebra(Parent, UniqueRepresentation):
         Same as `characteristic` of the `base` provided in the constructor
 
         EXAMPLES::
-
             
             sage: FA = FlagAlgebra(GraphTheory, QQ)
             sage: FA.characteristic()

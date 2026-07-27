@@ -1,5 +1,5 @@
 csdpy: Python Wrapper for the Coin-Or project's CSDP solver
-===============================================
+===========================================================
 
 Description
 -----------

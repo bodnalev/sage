@@ -1,6 +1,6 @@
 r"""
 Combinatorial theories for flag algebras
-=======================================
+========================================
 
 This module implements **combinatorial theories** (a.k.a. *hereditary classes*)
 and the main flag-algebraic workflows on them: generating flags, excluding
@@ -2830,7 +2830,7 @@ class BuiltTheory(_CombinatorialTheory):
 
         OUTPUT: A Flag with the given parameters
 
-        EXAMPLES::
+        EXAMPLES:
 
         Create an empty graph on 3 vertices ::
 
@@ -2897,7 +2897,7 @@ class BuiltTheory(_CombinatorialTheory):
 
     def empty_element(self):
         r"""
-        Returns the empty element, ``n``=0 and no blocks
+        Returns the empty element, ``n=0`` and no blocks
 
         OUTPUT: The empty element of the CombinatorialTheory
 
@@ -2906,7 +2906,7 @@ class BuiltTheory(_CombinatorialTheory):
             sage: GraphTheory.empty_element()
             Ftype on 0 points with edges=()
 
-        .. NOTE::
+        .. NOTE:
             This has an alias called :func:`empty`
             Since the underlying vertex set (empty set)
             is the same as the ftype point set, this is
@@ -2939,7 +2939,7 @@ class BuiltTheory(_CombinatorialTheory):
 
         OUTPUT: A Pattern with the given parameters
 
-        EXAMPLES::
+        EXAMPLES:
 
         Create a pattern on 3 vertices with one edge required
         and one edge missing ::
@@ -3155,7 +3155,7 @@ class BuiltTheory(_CombinatorialTheory):
 
         OUTPUT: List of all flags with given size and ftype
 
-        EXAMPLES::
+        EXAMPLES:
 
             There are 4 graphs on 3 vertices. Flags with empty
             ftype correspond to elements of the theory ::
@@ -3170,7 +3170,7 @@ class BuiltTheory(_CombinatorialTheory):
             See the notes on :func:`optimize_problem`. A large `n` can
             result in large number of structures.
 
-        TESTS::
+        TESTS:
 
             We test basic generation counts for a selection of theories.
 
@@ -3562,7 +3562,7 @@ class ExoticTheory(_CombinatorialTheory):
 
         OUTPUT: A CombinatorialTheory object
 
-        EXAMPLES::
+        EXAMPLES:
 
         This example shows how to create the theory for graphs 
         with ordered vertices (or equivalently 0-1 matrices)::
@@ -3625,7 +3625,7 @@ class ExoticTheory(_CombinatorialTheory):
 
         OUTPUT: A Flag with the given parameters
 
-        EXAMPLES::
+        EXAMPLES:
 
         Create an empty graph on 3 vertices ::
 
@@ -3684,7 +3684,7 @@ class ExoticTheory(_CombinatorialTheory):
 
     def empty_element(self):
         r"""
-        Returns the empty element, ``n``=0 and no blocks
+        Returns the empty element, ``n=0`` and no blocks
 
         OUTPUT: The empty element of the CombinatorialTheory
 
@@ -3693,7 +3693,7 @@ class ExoticTheory(_CombinatorialTheory):
             sage: GraphTheory.empty_element()
             Ftype on 0 points with edges=()
 
-        .. NOTE::
+        .. NOTE:
 
             Since the underlying vertex set (empty set)
             is the same as the ftype point set, this is
@@ -3934,7 +3934,7 @@ class ExoticTheory(_CombinatorialTheory):
 
         OUTPUT: List of all flags with given size and ftype
 
-        EXAMPLES::
+        EXAMPLES:
 
         There are 4 graphs on 3 vertices. Flags with empty
         ftype correspond to elements of the theory ::

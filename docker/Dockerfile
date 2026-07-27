@@ -297,3 +297,31 @@ RUN if [ x"$ARTIFACT_BASE" != x"source-clean" ]; then \
 COPY ./docker/entrypoint-dev.sh /usr/local/bin/sage-entrypoint
 ENTRYPOINT ["/usr/local/bin/sage-entrypoint"]
 CMD ["bash"]
+
+
+################################################################################
+# FlagAlgebraToolbox image
+################################################################################
+FROM sagemath AS flagalgebratoolbox
+
+ARG SAGE_ROOT=/home/sage/sage
+
+USER root
+
+RUN mkdir -p /workspace \
+    && chown sage:sage /workspace
+COPY --chown=root:root \
+    ./docker/flagalgebratoolbox-entrypoint.sh \
+    /usr/local/bin/flagalgebratoolbox-entrypoint
+
+RUN chmod 0755 /usr/local/bin/flagalgebratoolbox-entrypoint
+
+USER sage
+
+ENV PATH="${SAGE_ROOT}/local/bin:${PATH}"
+
+WORKDIR /workspace
+
+ENTRYPOINT ["/usr/local/bin/flagalgebratoolbox-entrypoint"]
+EXPOSE 8888
+CMD ["jupyter"]

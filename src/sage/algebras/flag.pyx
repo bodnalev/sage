@@ -112,7 +112,8 @@ from sage.all import QQ
 from cysignals.signals cimport sig_check
 from sage.structure.element cimport Element
 from sage.structure.coerce cimport coercion_model
-from blisspy cimport canonical_form_from_edge_list, automorphism_group_gens_from_edge_list
+from blisspy._core cimport canonical_form_from_edge_list
+from blisspy._core cimport automorphism_group_gens_from_edge_list
 from tqdm import tqdm
 
 # Elementary block operations
@@ -618,7 +619,7 @@ cdef class _Flag(Element):
 
         OUTPUT: integer, the number of vertices.
 
-        EXAMPLES::
+        EXAMPLES:
 
         This is the size parameter in the `Flag` initialization ::
 
@@ -659,7 +660,6 @@ cdef class _Flag(Element):
         OUTPUT: list of integers
 
         EXAMPLES::
-
             
             sage: two_pointed_triangle = GraphTheory(3, edges=[[0, 1], [0, 2], [1, 2]], ftype=[0, 1])
             sage: two_pointed_triangle.ftype_points()
@@ -780,7 +780,7 @@ cdef class _Flag(Element):
         r"""
         `FlagAlgebraElement`, equal to this, with size is shifted by the amount
 
-        EXAMPLES::
+        EXAMPLES:
 
         Edge shifted to size `3` ::
 
@@ -798,7 +798,7 @@ cdef class _Flag(Element):
         r"""
         `FlagAlgebraElement`, averaged to an `amount` smaller size
 
-        EXAMPLES::
+        EXAMPLES:
 
         Cherry averaged to size `2` ::
             
@@ -822,11 +822,10 @@ cdef class _Flag(Element):
 
         OUTPUT: The `FlagAlgebraElement` resulting from the division
 
-        EXAMPLES::
+        EXAMPLES:
 
         Divide by `2` ::
 
-            
             sage: g = GraphTheory(3)
             sage: (g/2).values()
             (1/2, 0, 0, 0)
@@ -904,10 +903,9 @@ cdef class _Flag(Element):
         Returns true if self appears as an induced structure inside
         other.
 
-        EXAMPLES::
+        EXAMPLES:
 
         Edge appears in a 4 star ::
-
             
             sage: star = GraphTheory(4, edges=[[0, 1], [0, 2], [0, 3]])
             sage: edge = GraphTheory(2, edges=[[0, 1]])
@@ -979,11 +977,10 @@ cdef class _Flag(Element):
 
         OUTPUT: the `FlagAlgebraElement` resulting from the projection
 
-        EXAMPLES::
+        EXAMPLES:
 
         If the center of a cherry is flagged, then the projection has
         coefficient 1/3 ::
-
             
             sage: p_cherry = GraphTheory(3, edges=[[0, 1], [0, 2]], ftype_points=[0])
             sage: p_cherry.project().values()
@@ -1012,10 +1009,9 @@ cdef class _Flag(Element):
         OUTPUT: the `FlagAlgebraElement` resulting from the multiplication
             and projection
 
-        EXAMPLES::
+        EXAMPLES:
 
         Pointed edge multiplied with itself and projected ::
-
             
             sage: p_edge = GraphTheory(2, edges=[[0, 1]], ftype_points=[0])
             sage: p_edge.mul_project(p_edge).values()
@@ -1041,10 +1037,9 @@ cdef class _Flag(Element):
         Randomly choosing self.size() points in other, the
         probability of getting self.
 
-        EXAMPLES::
+        EXAMPLES:
 
         Density of an edge in the cherry graph is 2/3 ::
-
             
             sage: cherry = GraphTheory(3, edges=[[0, 1], [0, 2]])
             sage: edge = GraphTheory(2, edges=[[0, 1]])
@@ -1110,23 +1105,21 @@ cdef class BuiltFlag(_Flag):
         r"""
         Returns the ftype of this `Flag`
 
-        EXAMPLES::
+        EXAMPLES:
 
         Ftype of a pointed triangle is just a point ::
 
-            
             sage: pointed_triangle = GraphTheory(3, edges=[[0, 1], [0, 2], [1, 2]], ftype=[0])
             sage: pointed_triangle.ftype()
             Ftype on 1 points with edges=()
         
         And with two points it is ::
-        
+
             sage: two_pointed_triangle = GraphTheory(3, edges=[[0, 1], [0, 2], [1, 2]], ftype=[0, 1])
             sage: two_pointed_triangle.ftype()
             Ftype on 2 points with edges=(01)
 
         .. NOTE::
-
             This is essentially the subflag, but the order of points matter. The result is saved
             for speed.
 
@@ -1616,7 +1609,7 @@ cdef class ExoticFlag(_Flag):
 
         OUTPUT: The resulting flag
 
-        EXAMPLES::
+        EXAMPLES:
 
         Create a simple GraphTheory triangle ::
             
@@ -1654,10 +1647,9 @@ cdef class ExoticFlag(_Flag):
         r"""
         Returns the ftype of this `Flag`
 
-        EXAMPLES::
+        EXAMPLES:
 
         Ftype of a pointed triangle is just a point ::
-
             
             sage: pointed_triangle = GraphTheory(3, edges=[[0, 1], [0, 2], [1, 2]], ftype=[0])
             sage: pointed_triangle.ftype()
@@ -1692,7 +1684,7 @@ cdef class ExoticFlag(_Flag):
         This returns a unique identifier that can equate isomorphic
         objects
 
-        EXAMPLES::
+        EXAMPLES:
 
         Isomorphic graphs have the same :func:`unique` value ::
 
@@ -1743,7 +1735,7 @@ cdef class ExoticFlag(_Flag):
 
         OUTPUT: The induced sub Flag
 
-        EXAMPLES::
+        EXAMPLES:
 
         Same ftype ::
 
