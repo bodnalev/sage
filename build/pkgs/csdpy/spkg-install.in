@@ -1,2 +1,11 @@
+set -e
+
 cd src
+
+echo "BLAS linker flags:"
+pkg-config --libs blas
+
+echo "LAPACK linker flags:"
+pkg-config --libs lapack
+
 sdh_pip_install .
