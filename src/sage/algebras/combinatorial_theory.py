@@ -168,8 +168,8 @@ from sage.categories.sets_cat import Sets
 from sage.all import vector, matrix, diagonal_matrix
 
 from sage.misc.prandom import randint
-from sage.arith.misc import falling_factorial, binomial, factorial
-from sage.misc.functional import round
+from sage.arith.misc import falling_factorial, binomial, factorial, gcd
+from sage.misc.functional import round, sqrt
 from sage.functions.other import ceil
 from functools import lru_cache
 
@@ -297,30 +297,142 @@ def _round_adaptive(ls, onevec, denom=1024):
         best_vec = rvec/(rvec*onevec)
     return best_vec, ((best_vec-orig)/(len(orig)**0.5)).norm()
 
-def _remove_kernel(mat, factor=1024, threshold=1e-4):
+def _remove_kernel(mat, K=None, factor=10^6, min_gap=1e3):
     r"""
     Kernel removal method for matrices.
 
     Uses the LLL algorithm to identify kernels of a given matrix with simple
-    rational base vectors and returns a matrix where this space is quotiented
+    rational base vectors, or if a number field K is provided, then look for simple kernel
+    vectors inside that field. Returns a matrix where this space is quotiented
     out and a matrix that can map back to the original space.
     """
+
+    if K is None:
+        K = QQ
+
     d = mat.nrows()
-    M_scaled = matrix(ZZ, [[round(xx*factor) for xx in vv] for vv in mat])
-    M_augmented = matrix.identity(ZZ, d).augment(M_scaled)
-    LLL_reduced = M_augmented.LLL()
-    LLL_coeffs = LLL_reduced[:, :d]
-    norm_test = LLL_coeffs * mat
-    #print("norms are: ", " ".join([str(int(log(rr.norm(1)/d, 10))) for rr in norm_test]))
-    kernel_base = [LLL_coeffs[ii] for ii,rr in enumerate(norm_test) if rr.norm(1)/d < threshold]
-    #print("resulting kernel base is:\n", kernel_base)
-    if len(kernel_base)==0:
-        return mat, matrix.identity(d, sparse=True)
-    K = matrix(ZZ, kernel_base).stack(matrix.identity(d))
-    image_space = matrix(K.gram_schmidt()[0][len(kernel_base):, :], sparse=True)
-    kernel_removed_mat = image_space * mat * image_space.T
-    norm_factor = image_space * image_space.T
-    mat_recover = image_space.T * norm_factor.inverse()
+    scale = max(abs(x) for x in mat.list())
+
+    if scale == 0:
+        return mat, matrix.identity(K, d)
+
+    A = mat / scale
+    factor = ZZ(factor)
+
+    eigs = sorted(
+        abs(x)
+        for x in matrix(RDF, A).eigenvalues()
+    )
+
+    gaps = [
+        eigs[r] / max(eigs[r - 1], 1e-300)
+        for r in range(1, d)
+    ]
+
+    r = max(
+        range(1, d),
+        key=lambda r: gaps[r - 1],
+    )
+
+    if gaps[r - 1] < min_gap:
+        return mat, matrix.identity(K, d)
+    residual_cutoff = sqrt(eigs[r - 1] * eigs[r])
+    if K == QQ:
+        n = 1
+        powers = [1]
+
+        def make_exact(z, i):
+            return QQ(z[i])
+
+        def embed(x):
+            return x
+
+    else:
+        a = K.gen()
+        n = K.degree()
+
+        powers = [a**k for k in range(n)]
+
+        def make_exact(z, i):
+            return sum(
+                z[i*n + k] * a**k
+                for k in range(n)
+            )
+
+        def embed(x):
+            return sum(
+                c * powers[k]
+                for k, c in enumerate(x.list())
+            )
+
+    # LLL
+    N = d * n
+    target = [
+        [
+            ZZ((factor * powers[k] * A[i, j]).round())
+            for j in range(d)
+        ]
+        for i in range(d)
+        for k in range(n)
+    ]
+
+    B = matrix.identity(ZZ, N).augment(matrix(ZZ, target))
+    coeffs = B.LLL()[:, :N]
+
+    candidates = []
+
+    for z in coeffs.rows():
+        g = gcd([abs(x) for x in z if x] or [1])
+        z = vector(ZZ, [x // g for x in z])
+        first = next((x for x in z if x), 1)
+        if first < 0:
+            z = -z
+        height = max(abs(x) for x in z)
+        v = vector(K, [
+            make_exact(z, i)
+            for i in range(d)
+        ])
+        vn = vector([
+            embed(x)
+            for x in v
+        ])
+        vn_norm = vn.norm(2)
+        if vn_norm == 0:
+            continue
+        error = (vn * A).norm(2) / vn_norm
+        if error < residual_cutoff:
+            candidates.append((height, error, v))
+
+    if not candidates:
+        return mat, matrix.identity(K, d)
+
+    candidates.sort(key=lambda t: (t[0], t[1]))
+
+    kernel = []
+
+    for _, _, v in candidates:
+        trial = matrix(K, kernel + [list(v)])
+
+        if trial.rank() > len(kernel):
+            kernel.append(list(v))
+
+            if len(kernel) == r:
+                break
+    if len(kernel) < r:
+        return mat, matrix.identity(K, d)
+
+    kernel = matrix(K, kernel)
+    image_space = kernel.right_kernel().basis_matrix()
+
+    gram = image_space * image_space.transpose()
+
+    mat_recover = (
+        image_space.transpose() * gram.inverse()
+    )
+
+    kernel_removed_mat = (
+        image_space * mat * image_space.transpose()
+    )
     return kernel_removed_mat, mat_recover
 
 def _custom_psd_test(M):
@@ -1333,11 +1445,11 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
         import time
 
         # set up parameters
-        denom = params.get("denom", 1024)
+        denom = params.get("denom", 2**20)
         slack_threshold = params.get("slack_threshold", 1e-9)
         linear_threshold = params.get("linear_threshold", 1e-6)
-        kernel_threshold = params.get("kernel_threshold", 1e-4)
-        kernel_denom = params.get("kernel_denom", 1024)
+        kernel_threshold = params.get("kernel_threshold", 1e-3)
+        kernel_denom = params.get("kernel_denom", 2**20)
         
         # unpack variables
         block_sizes, target_list_exact, _, __ = sdp_data
@@ -1430,7 +1542,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             for plus_index, base in enumerate(table_constructor[params]):
                 
                 X_approx = matrix(sdp_result['X'][block_index + plus_index])
-                X_kernel_removed, recover_base = _remove_kernel(X_approx, kernel_denom, kernel_threshold)
+                X_kernel_removed, recover_base = _remove_kernel(X_approx, factor=kernel_denom, min_gap=1/kernel_threshold)
                 X_recover_bases.append(recover_base)
                 X_sizes_corrected.append(X_kernel_removed.nrows())
                 X_rounded_flattened = _round_list(
@@ -1564,8 +1676,8 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
         denom = params.get("denom", 1024)
         slack_threshold = params.get("slack_threshold", 1e-9)
         linear_threshold = params.get("linear_threshold", 1e-6)
-        kernel_threshold = params.get("kernel_threshold", 1e-4)
-        kernel_denom = params.get("kernel_denom", 1024)
+        kernel_threshold = params.get("kernel_threshold", 1e-3)
+        kernel_denom = params.get("kernel_denom", 2**20)
         
         # unpack variables
         block_sizes, target_list_exact, _, __ = sdp_data
@@ -1667,7 +1779,10 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             for plus_index, base in enumerate(table_constructor[params]):
                 
                 X_approx = matrix(sdp_result['X'][block_index + plus_index])
-                X_kernel_removed, recover_base = _remove_kernel(X_approx, kernel_denom, kernel_threshold)
+                X_kernel_removed, recover_base = _remove_kernel(
+                    X_approx, phi_vector_exact.base_ring(), 
+                    factor=kernel_denom, min_gap=1/kernel_threshold
+                    )
                 X_recover_bases.append(recover_base)
                 X_sizes_corrected.append(X_kernel_removed.nrows())
                 X_rounded_flattened = _round_list(
@@ -2365,6 +2480,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             )
         if rounding_output==None:
             self.fprint("Rounding based on construction was unsuccessful")
+            return None
             rounding_output = self._round_sdp_solution_no_phi(
                 final_sol, sdp_data, table_constructor, 
                 constraints_data, **params

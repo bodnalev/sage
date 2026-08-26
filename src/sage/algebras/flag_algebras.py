@@ -550,6 +550,30 @@ class FlagAlgebraElement(Element):
         vals = [self.values() * mat * other.values() for mat in table]
         return self.__class__(self.parent(), N, vals)
     
+    def _pow_int(self, other):
+        if other==0:
+            return 1
+        if other==1:
+            return self
+        result = self
+        for ii in range(other-1):
+            result *= self
+        return result
+    
+    def _pow_(self, other):
+        if other==0:
+            return 1
+        if other==1:
+            return self
+        for ii in range(10):
+            if ii==other:
+                other = ii
+                break
+        result = self
+        for ii in range(other-1):
+            result *= self
+        return result
+
     def __truediv__(self, other):
         r"""
         Divide by a scalar
