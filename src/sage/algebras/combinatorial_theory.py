@@ -297,7 +297,7 @@ def _round_adaptive(ls, onevec, denom=1024):
         best_vec = rvec/(rvec*onevec)
     return best_vec, ((best_vec-orig)/(len(orig)**0.5)).norm()
 
-def _remove_kernel(mat, K=None, factor=10^6, min_gap=1e3):
+def _remove_kernel(mat, K=None, factor=10^6, min_gap=1e3, printlevel=0):
     r"""
     Kernel removal method for matrices.
 
@@ -323,9 +323,11 @@ def _remove_kernel(mat, K=None, factor=10^6, min_gap=1e3):
         abs(x)
         for x in matrix(RDF, A).eigenvalues()
     )
+    if printlevel>1:
+        print("\nRemoving kernels for matrix, eigs are: ", eigs)
 
     gaps = [
-        eigs[r] / max(eigs[r - 1], 1e-300)
+        eigs[r] / max(eigs[r - 1], 1e-30)
         for r in range(1, d)
     ]
 
@@ -404,6 +406,8 @@ def _remove_kernel(mat, K=None, factor=10^6, min_gap=1e3):
             candidates.append((height, error, v))
 
     if not candidates:
+        if printlevel>1:
+            print("No kernel found by LLL")
         return mat, matrix.identity(K, d)
 
     candidates.sort(key=lambda t: (t[0], t[1]))
@@ -419,8 +423,12 @@ def _remove_kernel(mat, K=None, factor=10^6, min_gap=1e3):
             if len(kernel) == r:
                 break
     if len(kernel) < r:
+        if printlevel>1:
+            print("Kernel found is degenerate")
         return mat, matrix.identity(K, d)
 
+    if printlevel>1:
+        print("Kernel found has dimension ", len(kernel))
     kernel = matrix(K, kernel)
     image_space = kernel.right_kernel().basis_matrix()
 
@@ -1542,7 +1550,7 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
             for plus_index, base in enumerate(table_constructor[params]):
                 
                 X_approx = matrix(sdp_result['X'][block_index + plus_index])
-                X_kernel_removed, recover_base = _remove_kernel(X_approx, factor=kernel_denom, min_gap=1/kernel_threshold)
+                X_kernel_removed, recover_base = _remove_kernel(X_approx, factor=kernel_denom, min_gap=1/kernel_threshold, printlevel=self._printlevel)
                 X_recover_bases.append(recover_base)
                 X_sizes_corrected.append(X_kernel_removed.nrows())
                 X_rounded_flattened = _round_list(
@@ -1781,7 +1789,8 @@ class _CombinatorialTheory(Parent, UniqueRepresentation):
                 X_approx = matrix(sdp_result['X'][block_index + plus_index])
                 X_kernel_removed, recover_base = _remove_kernel(
                     X_approx, phi_vector_exact.base_ring(), 
-                    factor=kernel_denom, min_gap=1/kernel_threshold
+                    factor=kernel_denom, min_gap=1/kernel_threshold, 
+                    printlevel=self._printlevel
                     )
                 X_recover_bases.append(recover_base)
                 X_sizes_corrected.append(X_kernel_removed.nrows())
