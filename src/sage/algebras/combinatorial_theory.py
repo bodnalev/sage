@@ -129,7 +129,7 @@ Certificates:
 References
 ----------
 
-.. [Raz2007] A. Razborov, *Flag algebras*, J. Symbolic Logic 72 (2007), 1239-1282.
+- [Raz2007]_
 
 .. SEEALSO::
 

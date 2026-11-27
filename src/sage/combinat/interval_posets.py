@@ -10,7 +10,7 @@ of [Pons2013]_.
 
 The Tamari lattice can be defined as a lattice structure on either of several
 classes of Catalan objects, especially binary trees and Dyck paths
-[Tam1962]_ [HT1972]_ [Sta-EC2]_. An interval can be seen as
+[Tam1962]_ [HT1972]_ [EnumComb2]_. An interval can be seen as
 a pair of comparable elements. The number of intervals has been given in
 [Cha2008]_.
 
@@ -3901,7 +3901,7 @@ class TamariIntervalPosets_size(TamariIntervalPosets):
         Return a random Tamari interval poset of fixed size.
 
         This is obtained using the class
-        :class:`~sage.tamari_blossoming_tree.TamariBlossomingTrees`,
+        :class:`~sage.combinat.tamari_blossoming_tree.TamariBlossomingTrees`,
         which generates blossoming trees uniformly at random. A bijection is
         then performed to obtain a Tamari interval poset.
 

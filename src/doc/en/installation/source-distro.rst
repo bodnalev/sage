@@ -337,17 +337,9 @@ Sage no longer builds its own Python interpreter, so you need to provide one
 either from your system package manager or from a tool such as ``uv``.
 
 Sage's ``./configure`` currently accepts Python versions in the range
-``>= 3.12`` and ``< 3.15``. It also checks that the interpreter provides the
+``>= 3.13`` and ``< 3.16``. It also checks that the interpreter provides the
 modules ``sqlite3``, ``ctypes``, ``math``, ``hashlib``, ``socket``, ``ssl``,
 ``ensurepip``, and ``zlib``.
-
-On Python 3.12 and newer, Sage additionally checks for ``setuptools`` because
-``distutils`` was removed from the Python standard library. The configure test
-creates a fresh virtual environment from the selected interpreter and then
-imports ``setuptools`` there before compiling small C and C++ extension
-modules. Therefore it is not enough to install ``setuptools`` into an
-unrelated project environment; it needs to be available from the Python
-interpreter that you pass to ``./configure``.
 
 For a ``uv``-managed Python, ``uv`` marks the interpreter as externally
 managed, so installing ``setuptools`` into it requires
@@ -359,8 +351,8 @@ actual Python executable path. One way to prepare such a Python is::
     $ uv pip install --python "$PYTHON3" --break-system-packages setuptools
     $ ./configure --with-python="$PYTHON3"
 
-You can replace ``3.13`` by another supported minor version such as ``3.12``
-or ``3.14``. After ``./configure`` succeeds, continue with the usual build
+You can replace ``3.14`` by another supported minor version such as ``3.13``
+or ``3.15``. After ``./configure`` succeeds, continue with the usual build
 step::
 
     $ make
@@ -703,6 +695,12 @@ Standard environment controlling the build process
 
 Here are some of the more commonly used variables affecting the build process:
 
+.. envvar:: MAKE
+
+  The command used by Sage's make-based build steps. It may include options
+  such as ``-jNUM``; for parallel builds, :envvar:`MAKEFLAGS` is usually
+  preferred.
+
 .. envvar:: MAKEFLAGS
 
   This variable can be set to tell the ``make`` program to build things in
@@ -773,6 +771,7 @@ Here are some of the more commonly used variables affecting the build process:
 .. envvar:: CFLAGS
 .. envvar:: CXXFLAGS
 .. envvar:: FCFLAGS
+.. envvar:: F77FLAGS
 
   The flags for
   the C compiler, the C++ compiler and the Fortran compiler, respectively.
@@ -792,6 +791,20 @@ Here are some of the more commonly used variables affecting the build process:
 
 Sage-specific environment variables controlling the build process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. envvar:: SAGE_ROOT
+
+  The root directory of the Sage source tree.
+
+.. envvar:: SAGE_LOCAL
+
+  The installation prefix for non-Python packages built by Sage. In a standard
+  source build, this is the directory pointed to by :file:`$SAGE_ROOT/prefix`.
+
+.. envvar:: SAGE_VENV
+
+  The Python virtual environment used by Sage. In a standard source build, this
+  is the directory pointed to by :file:`$SAGE_ROOT/venv`.
 
 .. envvar:: SAGE_SERVER
 
@@ -1040,6 +1053,11 @@ Environment variables controlling the documentation build
   The Sage computing environment can be specified to either a Binder repo or a
   local Jupyter server. The environment variable :envvar:`SAGE_JUPYTER_SERVER`
   is used for this purpose.
+
+.. envvar:: SAGE_JUPYTER_SERVER_TOKEN
+
+  The token used to authenticate to the local Jupyter server specified by
+  :envvar:`SAGE_JUPYTER_SERVER`.
 
 .. envvar:: SAGE_JUPYTER_SERVER
 
