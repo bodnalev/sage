@@ -132,9 +132,7 @@ class SymmetricFunctionAlgebra_power(multiplicative.SymmetricFunctionAlgebra_mul
 
         REFERENCES:
 
-        .. [ClSt03] Peter Clifford, Richard P. Stanley,
-           *Bottom Schur functions*.
-           :arxiv:`math/0311382v2`.
+        - [ClSt03]_
 
         EXAMPLES::
 
@@ -268,7 +266,7 @@ class SymmetricFunctionAlgebra_power(multiplicative.SymmetricFunctionAlgebra_mul
             (`e` = elementary, `h` = complete homogeneous, `p` = powersum,
             `s` = Schur).
 
-            :meth:`omega_involution()` is a synonym for the :meth:`omega()`
+            :meth:`~sage.combinat.sf.sfa.SymmetricFunctionAlgebra_generic_Element.omega_involution` is a synonym for the :meth:`~sage.combinat.sf.sfa.SymmetricFunctionAlgebra_generic_Element.omega`
             method.
 
             OUTPUT: the image of ``self`` under the omega automorphism
@@ -527,12 +525,12 @@ class SymmetricFunctionAlgebra_power(multiplicative.SymmetricFunctionAlgebra_mul
 
             The `n`-th Verschiebung operator is adjoint to the `n`-th
             Adams operator (see :meth:`adams_operator` for its definition)
-            with respect to the Hall scalar product (:meth:`scalar`).
+            with respect to the Hall scalar product (:meth:`~sage.combinat.sf.sfa.SymmetricFunctionAlgebra_generic_Element.scalar`).
 
             The action of the `n`-th Verschiebung operator on the Schur basis
             can also be computed explicitly. The following (probably clumsier
             than necessary) description can be obtained by solving exercise
-            7.61 in Stanley's [STA]_.
+            7.61 in Stanley's [EnumComb2]_.
 
             Let `\lambda` be a partition. Let `n` be a positive integer. If
             the `n`-core of `\lambda` is nonempty, then

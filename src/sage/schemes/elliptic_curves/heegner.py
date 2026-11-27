@@ -69,7 +69,7 @@ Here we find that the Heegner point generates a subgroup of index 3::
     sage: P = E.heegner_point(-7)
     sage: z = P.point_exact(); z == E(0, 1, 1)  or -z == E(0, 1, 1)
     True
-    sage: E.regulator()
+    sage: E.regulator()  # needs eclib
     0.0498083972980648
     sage: z.height()
     0.448275575682583
@@ -82,6 +82,7 @@ Here we find that the Heegner point generates a subgroup of index 3::
 
 The above is consistent with the following analytic computation::
 
+    sage: # needs eclib
     sage: E.heegner_index(-7)
     3.0000?
 """
@@ -1564,7 +1565,7 @@ class GaloisAutomorphismQuadraticForm(GaloisAutomorphism):
         """
         return hash((self.parent(), tuple(self.__quadratic_form)))
 
-    def __richcmp__(self, right, op) -> bool:
+    def __richcmp__(self, other, op: int) -> bool:
         """
         Comparison.
 
@@ -1588,15 +1589,15 @@ class GaloisAutomorphismQuadraticForm(GaloisAutomorphism):
             sage: s == 0
             False
         """
-        if not isinstance(right, GaloisAutomorphismQuadraticForm):
+        if not isinstance(other, GaloisAutomorphismQuadraticForm):
             return NotImplemented
         lx = self.parent()
-        rx = right.parent()
+        rx = other.parent()
         if lx != rx:
             return richcmp_not_equal(lx, rx, op)
-        if self.quadratic_form().is_equivalent(right.quadratic_form()):
+        if self.quadratic_form().is_equivalent(other.quadratic_form()):
             return rich_to_bool(op, 0)
-        return richcmp(self.quadratic_form(), right.quadratic_form(), op)
+        return richcmp(self.quadratic_form(), other.quadratic_form(), op)
 
     def _repr_(self) -> str:
         """
@@ -1762,7 +1763,7 @@ class HeegnerPoint(SageObject):
         self.__D = D
         self.__c = c
 
-    def __richcmp__(self, x, op) -> bool:
+    def __richcmp__(self, other, op: int) -> bool:
         """
         Compare two Heegner points.
 
@@ -1784,10 +1785,10 @@ class HeegnerPoint(SageObject):
             sage: H == 0
             False
         """
-        if not isinstance(x, HeegnerPoint):
+        if not isinstance(other, HeegnerPoint):
             return NotImplemented
         return richcmp((self.__N, self.__D, self.__c),
-                       (x.__N, x.__D, x.__c), op)
+                       (other.__N, other.__D, other.__c), op)
 
     def _repr_(self) -> str:
         """
@@ -2762,7 +2763,7 @@ class HeegnerPointOnX0N(HeegnerPoint):
         """
         return hash((HeegnerPoint.__hash__(self), self.reduced_quadratic_form()))
 
-    def __richcmp__(self, x, op) -> bool:
+    def __richcmp__(self, other, op: int) -> bool:
         """
         Compare two Heegner points with character.
 
@@ -2777,12 +2778,12 @@ class HeegnerPointOnX0N(HeegnerPoint):
             sage: x5 > x1
             True
         """
-        if not isinstance(x, HeegnerPointOnX0N):
+        if not isinstance(other, HeegnerPointOnX0N):
             return NotImplemented
         return richcmp((self.level(), self.discriminant(),
                         self.conductor(), self.__f),
-                       (x.level(), x.discriminant(),
-                        x.conductor(), x.__f), op)
+                       (other.level(), other.discriminant(),
+                        other.conductor(), other.__f), op)
 
     def _repr_(self) -> str:
         """
@@ -3231,9 +3232,9 @@ class HeegnerPointOnEllipticCurve(HeegnerPoint):
             sage: P = E.heegner_point(-19); y = P._trace_numerical_conductor_1()
             sage: [c.real() for c in y]
             [-1.2...e-16, -1.00000000000000, 1.00000000000000]
-            sage: -2*E.gens()[0]
+            sage: -2*E.gens()[0]  # needs eclib
             (0 : -1 : 1)
-            sage: P._trace_index()
+            sage: P._trace_index()  # needs eclib
             2
 
             sage: P = E.heegner_point(-68); P
@@ -3241,7 +3242,7 @@ class HeegnerPointOnEllipticCurve(HeegnerPoint):
             sage: N(P)
             (0.219223593595584 - 1.87443160153148*I
              : -1.34232921921325 - 1.52356748877889*I : 1.00000000000000)
-            sage: P._trace_index()
+            sage: P._trace_index()  # needs eclib
             0
         """
         if self.conductor() != 1:
@@ -3779,11 +3780,11 @@ class HeegnerPointOnEllipticCurve(HeegnerPoint):
             sage: P._trace_numerical_conductor_1() # approx. (1 : 0 : 1)
             (1.00000000000000 + ...e-16*I : ...e-16 - ...e-16*I : 1.00000000000000)
             sage: P = E(2,1) # a generator
-            sage: E([1,0]).height()
+            sage: E([1,0]).height()  # abs tol 1e-12
             0.150298370947295
-            sage: P.height()
+            sage: P.height()  # abs tol 1e-12
             0.0375745927368238
-            sage: E.heegner_index(-8)
+            sage: E.heegner_index(-8)  # needs eclib
             2.0000?
             sage: E.torsion_order()
             1
@@ -4135,6 +4136,7 @@ class KolyvaginPoint(HeegnerPoint):
 
         EXAMPLES::
 
+            sage: # needs eclib
             sage: E = EllipticCurve('37a1'); P = E.kolyvagin_point(-67); P.index()
             6
         """
@@ -4185,6 +4187,7 @@ class KolyvaginPoint(HeegnerPoint):
 
         A rank 1 curve::
 
+            sage: # needs eclib
             sage: E = EllipticCurve('37a1'); P = E.kolyvagin_point(-67)
             sage: P.point_exact()
             (6 : -15 : 1)
@@ -4197,6 +4200,7 @@ class KolyvaginPoint(HeegnerPoint):
 
         A rank 0 curve::
 
+            sage: # needs eclib
             sage: E = EllipticCurve('11a1'); P = E.kolyvagin_point(-7)
             sage: P.point_exact()
             (-1/2*sqrt_minus_7 + 1/2 : -2*sqrt_minus_7 - 2 : 1)
@@ -4330,6 +4334,8 @@ class KolyvaginPoint(HeegnerPoint):
             sage: E = EllipticCurve('37a1'); P = E.kolyvagin_point(-67)
             sage: P.trace_to_real_numerical()
             (1.61355529131986 : -2.18446840788880 : 1.00000000000000)
+
+            sage: # needs eclib
             sage: P._trace_exact_conductor_1()  # the actual point we're reducing
             (1357/841 : -53277/24389 : 1)
             sage: (P._trace_exact_conductor_1().height() / E.regulator()).sqrt()
@@ -4356,7 +4362,7 @@ class KolyvaginPoint(HeegnerPoint):
             sage: E = EllipticCurve('43a'); P = E.heegner_point(-20).kolyvagin_point()
             sage: PP = P.numerical_approx(); PP
             (0.000000000000000 : -1.00000000000000 : 1.00000000000000)
-            sage: P._recognize_point_over_QQ(PP, 4)
+            sage: P._recognize_point_over_QQ(PP, 4)  # needs eclib
             (0 : -1 : 1)
         """
         # Here is where we *should* implement the "method of Cremona
@@ -4390,16 +4396,18 @@ class KolyvaginPoint(HeegnerPoint):
         A Kolyvagin point on a rank 1 curve::
 
             sage: E = EllipticCurve('37a1'); P = E.kolyvagin_point(-67)
-            sage: P.mod(2)
+            sage: P.mod(2)  # needs eclib
             (1 : 1 : 1)
-            sage: P.mod(3)
+            sage: P.mod(3)  # needs eclib
             (1 : 0 : 1)
-            sage: P.mod(5)
+            sage: P.mod(5)  # needs eclib
             (2 : 2 : 1)
-            sage: P.mod(7)
+            sage: P.mod(7)  # needs eclib
             (6 : 0 : 1)
             sage: P.trace_to_real_numerical()
             (1.61355529131986 : -2.18446840788880 : 1.00000000000000)
+
+            sage: # needs eclib
             sage: P._trace_exact_conductor_1()  # the actual point we're reducing
             (1357/841 : -53277/24389 : 1)
             sage: (P._trace_exact_conductor_1().height() / E.regulator()).sqrt()
@@ -4409,9 +4417,9 @@ class KolyvaginPoint(HeegnerPoint):
         rank 1), and we reduce it modulo several primes.::
 
             sage: E = EllipticCurve('11a1'); P = E.kolyvagin_point(-7)
-            sage: P.mod(3,70)  # long time (4s on sage.math, 2013)
+            sage: P.mod(3,70)  # long time, needs eclib
             (1 : 2 : 1)
-            sage: P.mod(5,70)
+            sage: P.mod(5,70)  # needs eclib
             (1 : 4 : 1)
             sage: P.mod(7,70)
             Traceback (most recent call last):
@@ -4421,7 +4429,7 @@ class KolyvaginPoint(HeegnerPoint):
             Traceback (most recent call last):
             ...
             ValueError: p must be coprime to conductors and discriminant
-            sage: P.mod(13,70)
+            sage: P.mod(13,70)  # needs eclib
             (3 : 4 : 1)
         """
         # check preconditions
@@ -5674,11 +5682,13 @@ def kolyvagin_reduction_data(E, q, first_only=True):
 
     A rank 1 example::
 
+        sage: # needs eclib
         sage: kolyvagin_reduction_data(EllipticCurve('37a1'), 3)
         (17, -7, 1, 52)
 
     A rank 3 example::
 
+        sage: # needs eclib
         sage: kolyvagin_reduction_data(EllipticCurve('5077a1'), 3)
         (11, -47, 5, 4234)
         sage: H = heegner_points(5077, -47)
@@ -5694,7 +5704,7 @@ def kolyvagin_reduction_data(E, q, first_only=True):
     present)::
 
         sage: E = elliptic_curves.rank(4)[0]
-        sage: kolyvagin_reduction_data(E,3)              # long time
+        sage: kolyvagin_reduction_data(E,3)  # long time, needs eclib
         (11, -71, 7, 293060)
         sage: H = heegner_points(293060, -71)
         sage: H.kolyvagin_conductors(1,4,E,3)
@@ -5702,6 +5712,7 @@ def kolyvagin_reduction_data(E, q, first_only=True):
 
     The first rank 2 example::
 
+        sage: # needs eclib
         sage: kolyvagin_reduction_data(EllipticCurve('389a'), 3)
         (5, -7, 1, 130)
         sage: kolyvagin_reduction_data(EllipticCurve('389a'), 3, first_only=False)
@@ -5709,11 +5720,13 @@ def kolyvagin_reduction_data(E, q, first_only=True):
 
     A large `q = 7`::
 
+        sage: # needs eclib
         sage: kolyvagin_reduction_data(EllipticCurve('1143c1'), 7, first_only=False)
         (13, 83, -59, 3, 1536, 10496)
 
     Additive reduction::
 
+        sage: # needs eclib
         sage: kolyvagin_reduction_data(EllipticCurve('2350g1'), 5, first_only=False)
         (19, 239, -311, 19, 6480, 85680)
     """
@@ -6452,10 +6465,10 @@ def kolyvagin_point(self, D, c=ZZ.one(), check=True):
         Kolyvagin point of discriminant -67 on elliptic curve of conductor 37
         sage: P.numerical_approx()  # abs tol 1e-14
         (6.00000000000000 : -15.0000000000000 : 1.00000000000000)
-        sage: P.index()
+        sage: P.index()  # needs eclib
         6
         sage: g = E((0,-1,1)) # a generator
-        sage: E.regulator() == E.regulator_of_points([g])
+        sage: E.regulator() == E.regulator_of_points([g])  # needs eclib
         True
         sage: 6*g
         (6 : -15 : 1)
@@ -6567,7 +6580,7 @@ def heegner_point_height(self, D, prec=2, check_rank=True):
     IR = RealIntervalField(20)    # TODO: why 20 bits here?
 
     if eps == 1 and L1_vanishes:
-        return IR(0)  # rank even hence >= 2, so Heegner point is torsion.
+        return IR.zero()  # rank even hence >= 2, so Heegner point is torsion.
 
     RR = RealField()
     from math import sqrt
@@ -6578,10 +6591,11 @@ def heegner_point_height(self, D, prec=2, check_rank=True):
     k_E = prec*sqrt(E.conductor()) + 20
     k_F = prec*sqrt(F.conductor()) + 20
 
-    MIN_ERR = RR('1e-6')  # we assume that regulator and
-                         # discriminant, etc., computed to this accuracy (which is easily the case).
-                         # this should be made more intelligent / rigorous relative
-                         # to the rest of the system.
+    MIN_ERR = RR('1e-6')
+    # We assume that regulator and discriminant, etc., are computed to
+    # this accuracy (which is easily the case).
+    # This should be made more intelligent / rigorous relative to the
+    # rest of the system.
 
     if eps == 1:   # E has even rank
         LF1, err_F = F.lseries().deriv_at1(k_F)
@@ -6644,7 +6658,7 @@ def heegner_index(self, D, min_p=2, prec=5, descent_second_limit=12,
         sage: E = EllipticCurve('11a')
         sage: E.heegner_discriminants(50)
         [-7, -8, -19, -24, -35, -39, -40, -43]
-        sage: E.heegner_index(-7)
+        sage: E.heegner_index(-7)  # needs eclib
         1.00000?
 
     ::
@@ -6652,13 +6666,14 @@ def heegner_index(self, D, min_p=2, prec=5, descent_second_limit=12,
         sage: E = EllipticCurve('37b')
         sage: E.heegner_discriminants(100)
         [-3, -4, -7, -11, -40, -47, -67, -71, -83, -84, -95]
-        sage: E.heegner_index(-95)          # long time (1 second)
+        sage: E.heegner_index(-95)  # long time, needs eclib
         2.00000?
 
     This tests doing direct computation of the Mordell-Weil group.
 
     ::
 
+        sage: # needs eclib
         sage: EllipticCurve('675b').heegner_index(-11)
         3.0000?
 
@@ -6671,6 +6686,7 @@ def heegner_index(self, D, min_p=2, prec=5, descent_second_limit=12,
 
     The curve 681b returns the true index, which is `3`::
 
+        sage: # needs eclib
         sage: E = EllipticCurve('681b')
         sage: I = E.heegner_index(-8); I
         3.0000?
@@ -6685,6 +6701,7 @@ def heegner_index(self, D, min_p=2, prec=5, descent_second_limit=12,
     which can be used to fine tune the 2-descent used to compute
     the regulator of the twist::
 
+        sage: # needs eclib
         sage: E = EllipticCurve([1,-1,0,-1228,-16267])
         sage: E.heegner_index(-8)
         Traceback (most recent call last):
@@ -6693,7 +6710,8 @@ def heegner_index(self, D, min_p=2, prec=5, descent_second_limit=12,
 
     However when we search higher, we find the points we need::
 
-        sage: E.heegner_index(-8, descent_second_limit=16, check_rank=False)  # long time
+        sage: # long time, needs eclib
+        sage: E.heegner_index(-8, descent_second_limit=16, check_rank=False)
         2.00000?
 
     Two higher rank examples (of ranks 2 and 3)::
@@ -6704,9 +6722,9 @@ def heegner_index(self, D, min_p=2, prec=5, descent_second_limit=12,
         sage: E = EllipticCurve('5077a')
         sage: E.heegner_index(-7)
         +Infinity
-        sage: E.heegner_index(-7, check_rank=False)
+        sage: E.heegner_index(-7, check_rank=False)  # needs eclib
         0.001?
-        sage: E.heegner_index(-7, check_rank=False).lower() == 0
+        sage: E.heegner_index(-7, check_rank=False).lower() == 0  # needs eclib
         True
     """
     if not self.satisfies_heegner_hypothesis(D):
@@ -6856,6 +6874,7 @@ def heegner_index_bound(self, D=0, prec=5, max_height=None) -> tuple:
 
     EXAMPLES::
 
+        sage: # needs eclib
         sage: E = EllipticCurve('11a1')
         sage: E.heegner_index_bound()
         ([2], -7, 2)
@@ -6959,6 +6978,8 @@ def _heegner_index_in_EK(self, D):
     We compute the index for a rank 2 curve and found that it is 2::
 
         sage: E = EllipticCurve('389a')
+
+        sage: # needs eclib
         sage: E._heegner_index_in_EK(-7)
         2
 
@@ -7071,48 +7092,54 @@ def heegner_sha_an(self, D, prec=53):
 
     An example where E has conductor 11::
 
+        sage: # long time, needs eclib
         sage: E = EllipticCurve('11a')
-        sage: E.heegner_sha_an(-7)                                  # long time
+        sage: E.heegner_sha_an(-7)
         1.00000000000000
 
     The cache works::
 
-        sage: E.heegner_sha_an(-7) is E.heegner_sha_an(-7)          # long time
+        sage: # long time, needs eclib
+        sage: E.heegner_sha_an(-7) is E.heegner_sha_an(-7)
         True
 
     Lower precision::
 
-        sage: E.heegner_sha_an(-7,10)                               # long time
+        sage: # long time, needs eclib
+        sage: E.heegner_sha_an(-7,10)
         1.0
 
     Checking that the cache works for any precision::
 
-        sage: E.heegner_sha_an(-7,10) is E.heegner_sha_an(-7,10)    # long time
+        sage: # long time, needs eclib
+        sage: E.heegner_sha_an(-7,10) is E.heegner_sha_an(-7,10)
         True
 
     Next we consider a rank 1 curve with nontrivial Sha over the
     quadratic imaginary field `K`; however, there is no Sha for `E`
     over `\QQ` or for the quadratic twist of `E`::
 
+        sage: # long time, needs eclib
         sage: E = EllipticCurve('37a')
-        sage: E.heegner_sha_an(-40)                                 # long time
+        sage: E.heegner_sha_an(-40)
         4.00000000000000
-        sage: E.quadratic_twist(-40).sha().an()                     # long time
+        sage: E.quadratic_twist(-40).sha().an()
         1
-        sage: E.sha().an()                                          # long time
+        sage: E.sha().an()
         1
 
     A rank 2 curve::
 
-        sage: E = EllipticCurve('389a')                             # long time
-        sage: E.heegner_sha_an(-7)                                  # long time
+        sage: # long time, needs eclib
+        sage: E = EllipticCurve('389a')
+        sage: E.heegner_sha_an(-7)
         1.00000000000000
 
     If we remove the hypothesis that `E(K)` has rank 1 in Conjecture
     2.3 in [GZ1986]_ page 311, then that conjecture is
     false, as the following example shows::
 
-        sage: # long time
+        sage: # long time, needs eclib
         sage: E = EllipticCurve('65a')
         sage: E.heegner_sha_an(-56)
         1.00000000000000

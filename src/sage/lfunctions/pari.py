@@ -356,7 +356,7 @@ def lfun_elliptic_curve(E):
         sage: E = EllipticCurve([1, a])
         sage: L = LFunction(lfun_elliptic_curve(E))
         sage: L(3)
-        1.00412346717019
+        1.0041234671...
     """
     return pari.lfuncreate(E)
 
@@ -537,12 +537,12 @@ def lfun_genus2(C):
         sage: L = LFunction(lfun_genus2(C))  # this one is broken
         ...
         sage: L(3)
-        0.965946926261520
+        0.965...
 
         sage: C = HyperellipticCurve(x^2 + x, x^3 + x^2 + 1)
         sage: L = LFunction(lfun_genus2(C))
         sage: L(2)
-        0.364286342944359
+        0.364286342944...
 
     TESTS::
 
@@ -578,7 +578,7 @@ class LFunction(SageObject):
         0.305999773834052
         sage: L.derivative(1, 2)
         0.373095594536324
-        sage: L.cost()
+        sage: L.cost()  # random
         205
         sage: L.taylor_series(1, 4)
         0.000000000000000 + 0.305999773834052*z + 0.186547797268162*z^2
@@ -593,12 +593,12 @@ class LFunction(SageObject):
 
         sage: E = EllipticCurve('389a')
         sage: L = E.lseries().dokchitser(algorithm='pari')
-        sage: L.cost()
+        sage: L.cost()  # random
         666
         sage: L.derivative(1, E.rank())
         1.51863300057685
         sage: L.taylor_series(1, 4)
-        ...e-19 + (...e-19)*z + 0.759316500288427*z^2 - 0.430302337583362*z^3 + O(z^4)
+        ...e-... + (...e-...)*z + 0.759316500288427*z^2 - 0.430302337583362*z^3 + O(z^4)
 
     .. RUBRIC:: Number field
 
@@ -609,7 +609,7 @@ class LFunction(SageObject):
         sage: L = K.zeta_function(algorithm='pari')
         sage: L.conductor
         400
-        sage: L.cost()
+        sage: L.cost()  # random
         5499
         sage: L(2)
         1.10398438736918
@@ -649,7 +649,7 @@ class LFunction(SageObject):
             sage: from sage.lfunctions.pari import lfun_generic, LFunction
             sage: lf = lfun_generic(conductor=1, gammaV=[0], weight=1, eps=1, poles=[1], residues=[-1], v=pari('k->vector(k,n,1)'))
             sage: L = LFunction(lf)
-            sage: L.cost()
+            sage: L.cost()  # random
             8
         """
         if isinstance(lfun, lfun_generic):
@@ -664,7 +664,10 @@ class LFunction(SageObject):
 
         self._conductor = ZZ(self._L[4])
         self._weight = ZZ(self._L[3])
-        self._eps = ZZ(self._L[5])
+        try:
+            self._eps = ZZ(self._L[5])
+        except (TypeError, ValueError):
+            self._eps = self._L[5]
 
         self._max_im = max_im
 
@@ -743,18 +746,18 @@ class LFunction(SageObject):
 
             sage: E = EllipticCurve('11a')
             sage: L = E.lseries().dokchitser(algorithm='pari')
-            sage: L.cost()
+            sage: L.cost()  # random
             112
             sage: E = EllipticCurve('5077a')
             sage: L = E.lseries().dokchitser(algorithm='pari')
-            sage: L.cost()
+            sage: L.cost()  # random
             2406
 
             sage: from sage.lfunctions.pari import lfun_generic, LFunction
             sage: lf = lfun_generic(conductor=1, gammaV=[0], weight=1, eps=1,
             ....:        poles=[1], residues=[-1], v=pari('k->vector(k,n,1)'))
             sage: L = LFunction(lf)
-            sage: L.cost()
+            sage: L.cost()  # random
             8
         """
         # domain syntax :
@@ -869,16 +872,28 @@ class LFunction(SageObject):
             sage: E = EllipticCurve('389a')
             sage: L = E.lseries().dokchitser(200,algorithm='pari')
             sage: L.taylor_series(1, 3)
-            2...e-63 + (...e-63)*z + 0.75931650028842677023019260789472201907809751649492435158581*z^2 + O(z^3)
+            ...e-... + (...e-...)*z + 0.75931650028842677023019260789472201907809751649492435158581*z^2 + O(z^3)
 
         Check that :issue:`25402` is fixed::
 
             sage: L = EllipticCurve("24a1").modular_form().lseries()
             sage: L.taylor_series(-1, 3)
             0.000000000000000 - 0.702565506265199*z + 0.638929001045535*z^2 + O(z^3)
+
+        Check that :issue:`25965` is fixed::
+
+            sage: L2 = EllipticCurve("37a1").modular_form().lseries(); L2
+            L-series associated to the cusp form q - 2*q^2 - 3*q^3 + 2*q^4 - 2*q^5 + O(q^6)
+            sage: L2.taylor_series(0,3)
+            0.000000000000000 - 0.357620466127498*z + 0.273373112603865*z^2 + 0.303362857047671*z^3 + O(z^4)
+            sage: L2.taylor_series(0,1)
+            O(z^1)
+            sage: L2(0)
+            0.000000000000000
         """
         pt = pari.Ser([s, 1], d=k)  # s + x + O(x^k)
         B = PowerSeriesRing(self._CC, var)
+        # note: more terms are given when the first terms vanish.
         return B(pari.lfun(self._L, pt, precision=self.prec))
 
     def zeros(self, maxi):
@@ -962,7 +977,7 @@ class LFunction(SageObject):
             sage: lf = lfun_generic(conductor=1, gammaV=[0], weight=1, eps=1,
             ....:          poles=[1], residues=[1], v=pari('k->vector(k,n,1)'))
             sage: L = LFunction(lf)
-            sage: L.check_functional_equation()
+            sage: L.check_functional_equation()  # abs tol 1e-18
             4.33680868994202e-19
 
         If we choose the sign in functional equation for the

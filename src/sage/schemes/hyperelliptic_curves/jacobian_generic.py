@@ -19,10 +19,11 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
+from __future__ import annotations
 from sage.misc.cachefunc import cached_method
 from sage.misc.lazy_attribute import lazy_attribute
-from sage.rings.integer import Integer
 from sage.rings.rational_field import QQ
+from sage.categories.fields import Fields
 from sage.schemes.hyperelliptic_curves import (
     jacobian_homset_inert,
     jacobian_homset_ramified,
@@ -30,6 +31,10 @@ from sage.schemes.hyperelliptic_curves import (
     jacobian_morphism,
 )
 from sage.schemes.jacobians.abstract_jacobian import Jacobian_generic
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sage.rings.integer import Integer
 
 
 class HyperellipticJacobian_generic(Jacobian_generic):
@@ -64,6 +69,21 @@ class HyperellipticJacobian_generic(Jacobian_generic):
     If the hyperelliptic curve is ramified or inert, then `n` can be deduced
     from `\deg(u)` and `g`. In these cases, `n` is omitted in the description.
     """
+    def __init__(self, C, *args, **kwds):
+        r"""
+        Initialize a Jacobian from a curve ``C``.
+
+        TESTS::
+
+            sage: x = polygen(GF(419))
+            sage: C = HyperellipticCurve(x^5 + x, 0)
+            sage: J = C.jacobian()
+            sage: J.base_field()
+            Finite Field of size 419
+        """
+        if C.base_ring() in Fields():
+            self.base_field = self.base_ring  # compatibility alias
+        super().__init__(C, *args, **kwds)
 
     def dimension(self) -> Integer:
         r"""
@@ -174,7 +194,7 @@ class HyperellipticJacobian_generic(Jacobian_generic):
 
         .. SEEALSO::
 
-            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.order`.
+            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.HyperellipticJacobianHomset.order`.
         """
         return self.point_homset().order()
 
@@ -197,7 +217,7 @@ class HyperellipticJacobian_generic(Jacobian_generic):
 
         .. SEEALSO::
 
-            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.count_points`.
+            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.HyperellipticJacobianHomset.count_points`.
         """
         return self.point_homset().count_points(*args, **kwds)
 
@@ -207,7 +227,7 @@ class HyperellipticJacobian_generic(Jacobian_generic):
 
         .. SEEALSO::
 
-            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.lift_u`.
+            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.HyperellipticJacobianHomset.lift_u`.
         """
         return self.point_homset().lift_u(*args, **kwds)
 
@@ -226,7 +246,7 @@ class HyperellipticJacobian_generic(Jacobian_generic):
 
         .. SEEALSO::
 
-            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.random_element`.
+            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.HyperellipticJacobianHomset.random_element`.
         """
         return self.point_homset().random_element(*args, **kwds)
 
@@ -264,7 +284,7 @@ class HyperellipticJacobian_generic(Jacobian_generic):
 
         .. SEEALSO::
 
-            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.points`.
+            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.HyperellipticJacobianHomset.points`.
         """
 
         return self.point_homset().points(*args, **kwds)
@@ -297,7 +317,7 @@ class HyperellipticJacobian_generic(Jacobian_generic):
 
         .. SEEALSO::
 
-            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.abelian_group`.
+            :meth:`sage.schemes.hyperelliptic_curves.jacobian_homset_generic.HyperellipticJacobianHomset.abelian_group`.
         """
         return self.point_homset().abelian_group(*args, **kwds)
 

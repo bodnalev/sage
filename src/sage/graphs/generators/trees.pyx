@@ -105,6 +105,8 @@ from libc.limits cimport INT_MAX
 from cysignals.memory cimport check_allocarray, sig_free
 from sage.graphs.base.sparse_graph cimport SparseGraph
 from sage.graphs.base.sparse_graph cimport SparseGraphBackend
+from sage.graphs.base.static_sparse_backend import StaticSparseBackend
+from sage.graphs.base.static_sparse_backend import _direct_static_sparse_backend_from_edges
 
 from sage.graphs.graph import Graph
 from sage.misc.randstate import current_randstate
@@ -251,7 +253,7 @@ def FibonacciTree(n, immutable=False):
     ::
 
         sage: l1 = [graphs.FibonacciTree(_).order() + 1 for _ in range(6)]              # needs sage.libs.pari
-        sage: l2 = list(fibonacci_sequence(2,8))                                        # needs sage.libs.pari
+        sage: l2 = list(fibonacci_sequence(2, 8))                                       # needs sage.libs.pari
         sage: l1 == l2                                                                  # needs sage.libs.pari
         True
 
@@ -350,7 +352,7 @@ def Caterpillar(spine, immutable=False):
 
     Distinct spine sequences can yield isomorphic caterpillars::
 
-        sage: graphs.Caterpillar([1,1,2]).is_isomorphic(graphs.Caterpillar([2,1,1]))
+        sage: graphs.Caterpillar([1, 1, 2]).is_isomorphic(graphs.Caterpillar([2, 1, 1]))
         True
 
     TESTS:
@@ -359,9 +361,9 @@ def Caterpillar(spine, immutable=False):
 
         sage: graphs.Caterpillar([7]).diameter()
         2
-        sage: graphs.Caterpillar([2,2,2,2]).diameter()
+        sage: graphs.Caterpillar([2, 2, 2, 2]).diameter()
         5
-        sage: graphs.Caterpillar([0,1,1,0]).diameter()
+        sage: graphs.Caterpillar([0, 1, 1, 0]).diameter()
         5
 
     Check the behavior of parameter immutable::
@@ -478,7 +480,7 @@ def RandomLobster(n, p, q, seed=None, immutable=False):
     if seed is None:
         seed = int(current_randstate().long_seed() % sys.maxsize)
     import networkx
-    return Graph(networkx.random_lobster(n, p, q, seed=seed),
+    return Graph(networkx.random_lobster_graph(n, p, q, seed=seed),
                  immutable=immutable)
 
 
@@ -518,8 +520,7 @@ def RandomTree(n, seed=None, immutable=False):
 
     Ensuring that we encounter no unexpected surprise ::
 
-        sage: all( graphs.RandomTree(10).is_tree()
-        ....:      for i in range(100) )
+        sage: graphs.RandomTree(randint(1, 20)).is_tree()
         True
 
     Random tree with one and zero vertices::
@@ -640,13 +641,16 @@ def RandomTreePowerlaw(n, gamma=3, tries=1000, seed=None, immutable=False):
         return False
 
 
-def trees(n):
+def trees(n, immutable=False):
     r"""
     Return a generator of the distinct trees on a fixed number of vertices.
 
     INPUT:
 
     - ``n`` -- integer; the size of the trees created
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     OUTPUT:
 
@@ -684,14 +688,30 @@ def trees(n):
 
         sage: [len(list(graphs.trees(i))) for i in range(15)]
         [1, 1, 1, 1, 2, 3, 6, 11, 23, 47, 106, 235, 551, 1301, 3159]
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: any(g.is_immutable() for g in graphs.trees(6, immutable=False))
+        False
+        sage: all(g.is_immutable() for g in graphs.trees(6, immutable=True))
+        True
     """
     from sage.graphs.generators.trees import TreeIterator
-    return iter(TreeIterator(n))
+    return iter(TreeIterator(n, immutable=immutable))
 
 
 cdef class TreeIterator:
     r"""
     This class iterates over all trees with n vertices (up to isomorphism).
+
+    INPUT:
+
+    - ``n`` -- integer; the size of the trees created
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -723,14 +743,14 @@ cdef class TreeIterator:
         7741
     """
 
-    def __init__(self, int n):
+    def __init__(self, int n, bint immutable=False):
         r"""
         Initialize an iterator over all trees with `n` vertices.
 
         EXAMPLES::
 
             sage: from sage.graphs.generators.trees import TreeIterator
-            sage: t = TreeIterator(100) # indirect doctest
+            sage: t = TreeIterator(100)  # indirect doctest
             sage: print(t)
             Iterator over all trees with 100 vertices
         """
@@ -738,13 +758,14 @@ cdef class TreeIterator:
         self.l = NULL
         self.current_level_sequence = NULL
         self.first_time = 1
+        self.immutable = immutable
 
     def __dealloc__(self):
         r"""
         EXAMPLES::
             sage: from sage.graphs.generators.trees import TreeIterator
             sage: t = TreeIterator(100)
-            sage: t = None # indirect doctest
+            sage: t = None  # indirect doctest
         """
         sig_free(self.l)
         sig_free(self.current_level_sequence)
@@ -783,7 +804,7 @@ cdef class TreeIterator:
 
             sage: from sage.graphs.generators.trees import TreeIterator
             sage: T = TreeIterator(5)
-            sage: [t for t in T] # indirect doctest
+            sage: [t for t in T]  # indirect doctest
             [Graph on 5 vertices, Graph on 5 vertices, Graph on 5 vertices]
 
         TESTS:
@@ -793,7 +814,7 @@ cdef class TreeIterator:
 
             sage: from sage.graphs.generators.trees import TreeIterator
             sage: T = TreeIterator(0)
-            sage: [t for t in T] # indirect doctest
+            sage: [t for t in T]  # indirect doctest
             [Graph on 0 vertices]
         """
         if not self.first_time and not self.q:
@@ -812,17 +833,21 @@ cdef class TreeIterator:
             self.generate_next_level_sequence()
 
         cdef int i
-        cdef int vertex1
-        cdef int vertex2
-        cdef object G
 
-        G = Graph(self.n, sparse=True)
-        cdef SparseGraph SG = (<SparseGraphBackend?> G._backend)._cg
+        cdef object G = Graph(self.n, sparse=True, immutable=self.immutable)
+        cdef SparseGraph SG
 
-        for i in range(2, self.n + 1):
-            vertex1 = i - 1
-            vertex2 = self.current_level_sequence[i - 1] - 1
-            SG.add_arc_unsafe(vertex1, vertex2)
+        if self.immutable:
+            G._backend = _direct_static_sparse_backend_from_edges(
+                range(self.n),
+                ((i, self.current_level_sequence[i] - 1)
+                 for i in range(1, self.n)),
+                False, False, False, False)
+            G._immutable = True
+        else:
+            SG = (<SparseGraphBackend?> G._backend)._cg
+            for i in range(1, self.n):
+                SG.add_arc_unsafe(i, self.current_level_sequence[i] - 1)
 
         return G
 

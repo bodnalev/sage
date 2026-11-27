@@ -13,19 +13,28 @@ Check that gamma function imports are deprecated (:issue:`24411`)::
     beta(x, x)
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, overload
+
+if TYPE_CHECKING:
+    from sage.rings.integer import Integer
+
+
 import math
 
-from sage.arith.misc import binomial as arith_binomial
-from sage.functions.trig import arctan2
-from sage.misc.functional import sqrt
 from sage.misc.lazy_import import lazy_import
-from sage.rings.integer import Integer
-from sage.rings.integer_ring import ZZ
 from sage.rings.rational import Rational
 from sage.structure.element import Element, Expression, coercion_model
 
 # avoid name conflicts with `parent` as a function parameter
 from sage.structure.element import parent as s_parent
+
+from sage.arith.misc import binomial as arith_binomial
+from sage.functions.trig import arctan2
+from sage.misc.functional import sqrt
+from sage.rings.integer import Integer
+from sage.rings.integer_ring import ZZ
 from sage.symbolic.function import BuiltinFunction, GinacFunction
 from sage.symbolic.symbols import register_symbol, symbol_table
 
@@ -888,19 +897,13 @@ class Function_real_nth_root(BuiltinFunction):
             else:
                 raise ValueError("exponent cannot be complex")
         exp = ZZ(exp)
-
         negative = base < 0
-
         if negative:
             if exp.mod(2) == 0:
                 raise ValueError('no real nth root of negative real number with even n')
             base = -base
-
         r = base**(1/exp)
-
-        if negative:
-            return -r
-        return r
+        return r if not negative else -r
 
     def _eval_(self, base, exp):
         """
@@ -1046,13 +1049,13 @@ class Function_arg(BuiltinFunction):
             sage: arg(sqrt(2)+i)
             arg(sqrt(2) + I)
         """
-        if isinstance(x,Expression):
+        if isinstance(x, Expression):
             if x.is_trivial_zero():
                 return x
-        elif not x:
+            return None
+        if not x:
             return x
-        else:
-            return arctan2(imag_part(x),real_part(x))
+        return arctan2(imag_part(x), real_part(x))
 
     def _evalf_(self, x, parent=None, algorithm=None):
         """
@@ -1367,6 +1370,17 @@ conjugate = Function_conjugate()
 
 
 class Function_factorial(GinacFunction):
+    @overload
+    def __call__(self, n: Integer, algorithm: str = ...) -> Integer: ...
+
+    @overload
+    def __call__(self, n: int, algorithm: str = ...) -> int: ...
+
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        # Purely forwarding: the @overload declarations give static checkers
+        # the int/Integer return types; dispatch stays with GinacFunction.
+        return super().__call__(*args, **kwds)
+
     def __init__(self):
         r"""
         Return the factorial of `n`.
@@ -1410,7 +1424,7 @@ class Function_factorial(GinacFunction):
             120
 
         We can also give input other than nonnegative integers.  For
-        other nonnegative numbers, the :func:`sage.functions.gamma.gamma`
+        other nonnegative numbers, ``sage.functions.gamma.gamma``
         function is used::
 
             sage: factorial(1/2)                                                        # needs sage.symbolic
@@ -1562,6 +1576,17 @@ factorial = Function_factorial()
 
 
 class Function_binomial(GinacFunction):
+    @overload
+    def __call__(self, x: Integer, m: int | Integer, **kwds: Any) -> Integer: ...
+
+    @overload
+    def __call__(self, x: int, m: int, **kwds: Any) -> int: ...
+
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        # Purely forwarding: the @overload declarations give static checkers
+        # the int/Integer return types; dispatch stays with GinacFunction.
+        return super().__call__(*args, **kwds)
+
     def __init__(self):
         r"""
         Return the binomial coefficient.
@@ -2230,7 +2255,8 @@ class Function_elementof(BuiltinFunction):
 
     This function is called to express a set membership statement,
     usually as part of a solution set returned by :func:`solve`.
-    See :class:`sage.sets.set.Set` and :class:`sage.sets.real_set.RealSet`
+    See :class:`~sage.sets.set.Set_object` and
+    :class:`sage.sets.real_set.RealSet`
     for possible set arguments.
 
     EXAMPLES::

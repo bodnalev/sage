@@ -377,7 +377,7 @@ package within SageMath, or install FriCAS separately, see
 http://fricas.sourceforge.net.
 """
 
-    def _quit_string(self):
+    def _quit_string(self) -> str:
         """
         Return the string used to quit FriCAS.
 
@@ -780,7 +780,7 @@ http://fricas.sourceforge.net.
         """
         return ":="
 
-    def _equality_symbol(self):
+    def _equality_symbol(self) -> str:
         """
         Return the equality testing logical symbol in FriCAS.
 
@@ -799,7 +799,7 @@ http://fricas.sourceforge.net.
         """
         return "="
 
-    def _true_symbol(self):
+    def _true_symbol(self) -> str:
         """
         Return the string used for ``True`` in FriCAS.
 
@@ -810,7 +810,7 @@ http://fricas.sourceforge.net.
         """
         return "true"
 
-    def _false_symbol(self):
+    def _false_symbol(self) -> str:
         """
         Return the string used for ``False`` in FriCAS.
 
@@ -821,7 +821,7 @@ http://fricas.sourceforge.net.
         """
         return "false"
 
-    def _inequality_symbol(self):
+    def _inequality_symbol(self) -> str:
         """
         Return the string used for False in FriCAS.
 
@@ -832,7 +832,7 @@ http://fricas.sourceforge.net.
         """
         return '~='
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         EXAMPLES::
 
@@ -893,6 +893,46 @@ http://fricas.sourceforge.net.
                 output = output.replace(old, new)
 
         return output
+
+    def _coerce_impl(self, x, use_special=True):
+        r"""
+        Coerce pure Python types via corresponding Sage objects.
+
+        TESTS:
+
+        Check that converting a list of integers does not take forever::
+
+            sage: l = list(range(1000))
+            sage: fricas(l)[-1]
+            999
+
+        Check that lists of SageMath types are converted properly::
+
+            sage: fricas([GF(13)(-1)]).typeOf()
+            List(PrimeField(13))
+        """
+        def _fricas_init_(x, use_special):
+            if isinstance(x, bool):
+                return self._true_symbol() if x else self._false_symbol()
+            if isinstance(x, int):
+                return str(x)
+            if isinstance(x, float):
+                from sage.rings.real_double import RDF
+                return RDF(x)._fricas_init_()
+            if isinstance(x, complex):
+                from sage.rings.complex_double import CDF
+                return CDF(x)._fricas_init_()
+            if isinstance(x, (list, tuple)):
+                X = ','.join(_fricas_init_(v, True) for v in x)
+                return self._left_list_delim() + X + self._right_list_delim()
+            if use_special:
+                try:
+                    return x._fricas_init_()
+                except AttributeError:
+                    pass
+            raise TypeError("unable to coerce element into %s" % self.name())
+
+        return self.new(_fricas_init_(x, use_special))
 
     def _function_class(self):
         """
@@ -955,11 +995,48 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
     """
     Instances of this class represent objects in FriCAS.
 
-    Using the method :meth:`sage` we can translate some of them to
-    SageMath objects:
+    Using the method :meth:`~sage.interfaces.interface.InterfaceElement.sage`
+    we can translate some of them to SageMath objects:
 
     .. automethod:: _sage_
     """
+    def _fricas_init_(self):
+        """
+        Return the variable name of this element in the FriCAS session.
+
+        Elements are passed by name (reference), not by their printed
+        form, so that their FriCAS type is preserved and so that nested
+        conversions work even when the printed form is not valid input
+        syntax.
+
+        EXAMPLES::
+
+            sage: m = fricas.maxShift(2)
+            sage: fricas([m]).typeOf()
+            List(GuessOption)
+
+        Without this method, ``m`` would be serialized by its printed
+        form ``maxDerivative = 2``, which FriCAS parses as an equation
+        between two polynomials, so that ``guessRec(l, [m])`` would
+        fail to match ``guessRec(List F, List GuessOption)``::
+
+            sage: from sage.combinat.q_analogues import q_factorial
+            sage: l = [q_factorial(n) for n in range(13)]
+            sage: fricas.guessRec(l, [fricas.maxShift(2)])
+                                                2
+             [[f(n): - f(n)f(n + 2) + q f(n + 1)  + f(n)f(n + 1) = 0, f(0) = 1, f(1) = 1]]
+
+        Finally, it also makes nesting elements whose printed form is
+        not valid input syntax work::
+
+            sage: fricas([fricas('matrix [[1,2],[3,4]]')])
+             +1  2+
+            [|    |]
+             +3  4+
+        """
+        self._check_valid()
+        return self.name()
+
     def __len__(self):
         """
         Return the length of a list.
@@ -1204,6 +1281,15 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
             x^2 + y^2 + 1/2
             sage: _.parent()
             Multivariate Polynomial Ring in x, y over Rational Field
+
+        Identifiers generated by FriCAS, which are prefixed with ``%``, are
+        translated to identifiers prefixed with ``fricas_``, see the function
+        ``sage_identifier`` in ``sage.interfaces.fricas_translator``::
+
+            sage: fricas('(%A^2 + 1)::Polynomial(Integer)').sage()
+            fricas_A^2 + 1
+            sage: fricas('(%z0^2 + 1)::UP(%z0, INT)').sage()
+            fricas_z0^2 + 1
 
             sage: fricas("1$Polynomial Integer").sage()
             1
@@ -1458,11 +1544,11 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
             sage: var("k, m, n")
             (k, m, n)
             sage: fricas("sum(1/factorial(k), k=1..n)").sage()
-            sum(1/factorial(_...), _..., 1, n)
+            sum(1/factorial(fricas_...), fricas_..., 1, n)
             sage: fricas("eval(sum(x/k, k=1..n), x=k)").sage()
             k*harmonic_number(n)
             sage: fricas("product(1/factorial(k), k=1..n)").sage()
-            1/product(factorial(_...), _..., 1, n)
+            1/product(factorial(fricas_...), fricas_..., 1, n)
 
             sage: f = fricas.guess([sum(1/k, k,1,n) for n in range(10)])[0]; f
              n - 1
@@ -1485,7 +1571,7 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
              5       4
 
             sage: f.sage()
-            sum(factorial(_... + 1), _..., 0, n - 1)
+            sum(factorial(fricas_... + 1), fricas_..., 0, n - 1)
 
         Check that :issue:`26746` is fixed::
 
